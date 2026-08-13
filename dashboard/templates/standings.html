@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="standings-container">
+    <div class="standings-header">
+        <h1>Championship Standings</h1>
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="drivers">Drivers</button>
+            <button class="tab-btn" data-tab="constructors">Constructors</button>
+        </div>
+    </div>
+
+    <div class="standings-content">
+        <div id="drivers-standings" class="standings-table active">
+            <h2>Driver Championship</h2>
+            <div id="drivers-table-container">
+                <p>Loading standings...</p>
+            </div>
+        </div>
+
+        <div id="constructors-standings" class="standings-table">
+            <h2>Constructor Championship</h2>
+            <div id="constructors-table-container">
+                <p>Loading standings...</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Tab switching
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.standings-table').forEach(t => t.classList.remove('active'));
+        
+        this.classList.add('active');
+        const tab = this.dataset.tab;
+        document.getElementById(`${tab}-standings`).classList.add('active');
+        
+        // Load data
+        if (tab === 'drivers') {
+            loadDriverStandings();
+        } else {
+            loadConstructorStandings();
+        }
+    });
+});
+
+// Load driver standings
+function loadDriverStandings() {
+    fetch('/standings/api/driver-standings')
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('drivers-table-container');
+            if (data.data && data.data.length > 0) {
+                container.innerHTML = renderStandingsTable(data.data, 'driver');
+            } else {
+                container.innerHTML = '<p>No standings data available</p>';
+            }
+        });
+}
+
+// Load constructor standings
+function loadConstructorStandings() {
+    fetch('/standings/api/constructor-standings')
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('constructors-table-container');
+            if (data.data && data.data.length > 0) {
+                container.innerHTML = renderStandingsTable(data.data, 'constructor');
+            } else {
+                container.innerHTML = '<p>No standings data available</p>';
+            }
+        });
+}
+
+function renderStandingsTable(data, type) {
+    let html = '<table class="standings-table"><thead><tr>';
+    
+    if (type === 'driver') {
+        html += '<th>Pos</th><th>Driver</th><th>Team</th><th>Points</th>';
+    } else {
+        html += '<th>Pos</th><th>Team</th><th>Points</th>';
+    }
+    
+    html += '</tr></thead><tbody>';
+    
+    data.forEach(item => {
+        html += '<tr>';
+        html += `<td>${item.position}</td>`;
+        
+        if (type === 'driver') {
+            html += `<td>${item.driver_code}</td>`;
+            html += `<td>${item.team}</td>`;
+        } else {
+            html += `<td>${item.team_id}</td>`;
+        }
+        
+        html += `<td>${item.points}</td>`;
+        html += '</tr>';
+    });
+    
+    html += '</tbody></table>';
+    return html;
+}
+
+// Load initial data
+loadDriverStandings();
+</script>
+{% endblock %}

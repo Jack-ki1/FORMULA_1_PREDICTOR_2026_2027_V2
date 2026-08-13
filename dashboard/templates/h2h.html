@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="h2h-container">
+    <div class="h2h-header">
+        <h1>Head-to-Head Comparison</h1>
+    </div>
+
+    <div class="h2h-controls">
+        <select id="driver-a-select" class="form-select">
+            <option value="">Select Driver A</option>
+            {% for driver in drivers %}
+            <option value="{{ driver.code }}">{{ driver.name }} ({{ driver.code }})</option>
+            {% endfor %}
+        </select>
+        <span class="vs-text">VS</span>
+        <select id="driver-b-select" class="form-select">
+            <option value="">Select Driver B</option>
+            {% for driver in drivers %}
+            <option value="{{ driver.code }}">{{ driver.name }} ({{ driver.code }})</option>
+            {% endfor %}
+        </select>
+        <button id="compare-btn" class="btn btn-primary">Compare</button>
+    </div>
+
+    <div class="h2h-results">
+        <div id="comparison-result" class="comparison-card">
+            <p class="placeholder">Select two drivers to compare</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('compare-btn').addEventListener('click', function() {
+    const driverA = document.getElementById('driver-a-select').value;
+    const driverB = document.getElementById('driver-b-select').value;
+    
+    if (!driverA || !driverB) {
+        alert('Please select both drivers');
+        return;
+    }
+    
+    fetch('/h2h/api/compare', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            driver_a: driverA,
+            driver_b: driverB,
+        }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        const container = document.getElementById('comparison-result');
+        if (data.error) {
+            container.innerHTML = `<p class="error">${data.error}</p>`;
+        } else {
+            container.innerHTML = `
+                <div class="comparison-content">
+                    <div class="driver-result">
+                        <h3>${data.driver_a}</h3>
+                        <p class="probability">${(data.win_probability * 100).toFixed(1)}%</p>
+                    </div>
+                    <div class="vs-divider">VS</div>
+                    <div class="driver-result">
+                        <h3>${data.driver_b}</h3>
+                        <p class="probability">${(data.reverse_probability * 100).toFixed(1)}%</p>
+                    </div>
+                </div>
+            `;
+        }
+    });
+});
+</script>
+{% endblock %}

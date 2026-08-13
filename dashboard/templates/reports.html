@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="reports-container">
+    <div class="reports-header">
+        <h1>Export Reports</h1>
+    </div>
+
+    <div class="reports-content">
+        <div class="export-section">
+            <h2>Export Format</h2>
+            <div class="export-options">
+                <button id="export-csv" class="btn btn-secondary">Export CSV</button>
+                <button id="export-json" class="btn btn-secondary">Export JSON</button>
+                <button id="export-pdf" class="btn btn-secondary">Export PDF</button>
+                <button id="generate-card" class="btn btn-secondary">Generate Share Card</button>
+            </div>
+        </div>
+
+        <div class="preview-section">
+            <h2>Preview</h2>
+            <div id="export-preview" class="preview-container">
+                <p class="placeholder">Generate a report to see preview</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Export functions
+document.getElementById('export-csv').addEventListener('click', function() {
+    fetch('/reports/api/export/csv', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+    })
+    .then(response => response.blob())
+    .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'predictions.csv';
+        a.click();
+    });
+});
+
+document.getElementById('export-json').addEventListener('click', function() {
+    fetch('/reports/api/export/json', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+    })
+    .then(response => response.json())
+    .then(data => {
+        const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'predictions.json';
+        a.click();
+    });
+});
+
+document.getElementById('export-pdf').addEventListener('click', function() {
+    fetch('/reports/api/export/pdf', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+    })
+    .then(response => response.blob())
+    .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'predictions.pdf';
+        a.click();
+    });
+});
+
+document.getElementById('generate-card').addEventListener('click', function() {
+    fetch('/reports/api/share-card', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+    })
+    .then(response => response.json())
+    .then(data => {
+        const container = document.getElementById('export-preview');
+        if (data.error) {
+            container.innerHTML = `<p class="error">${data.error}</p>`;
+        } else {
+            container.innerHTML = `
+                <div class="share-card">
+                    <h3>F1 Predictor 2026</h3>
+                    <p>${data.summary || 'Race predictions summary'}</p>
+                </div>
+            `;
+        }
+    });
+});
+</script>
+{% endblock %}

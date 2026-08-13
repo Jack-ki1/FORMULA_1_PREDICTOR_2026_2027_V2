@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="analytics-container">
+    <div class="analytics-header">
+        <h1>Analytics & Settings</h1>
+    </div>
+
+    <div class="analytics-content">
+        <div class="analytics-section">
+            <h2>Model Accuracy</h2>
+            <div id="accuracy-content">
+                <p>Loading accuracy data...</p>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <h2>Model Tuning</h2>
+            <div id="tuning-controls">
+                <div class="control-group">
+                    <label>Chaos Level: <span id="chaos-value">50</span></label>
+                    <input type="range" id="chaos-slider" min="0" max="100" value="50">
+                </div>
+                <div class="control-group">
+                    <label>Wet Influence: <span id="wet-value">50</span></label>
+                    <input type="range" id="wet-slider" min="0" max="100" value="50">
+                </div>
+                <div class="control-group">
+                    <label>Reliability Influence: <span id="reliability-value">50</span></label>
+                    <input type="range" id="reliability-slider" min="0" max="100" value="50">
+                </div>
+                <div class="control-group">
+                    <label>Strategy Aggressiveness: <span id="strategy-value">50</span></label>
+                    <input type="range" id="strategy-slider" min="0" max="100" value="50">
+                </div>
+                <div class="control-group">
+                    <label>Grid Weight: <span id="grid-value">55</span></label>
+                    <input type="range" id="grid-slider" min="0" max="100" value="55">
+                </div>
+                <button id="save-weights" class="btn btn-primary">Save Settings</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Load accuracy data
+fetch('/analytics/api/accuracy')
+    .then(response => response.json())
+    .then(data => {
+        const container = document.getElementById('accuracy-content');
+        if (data.target_accuracies) {
+            let html = '<div class="accuracy-cards">';
+            for (const [target, metrics] of Object.entries(data.target_accuracies)) {
+                html += `
+                    <div class="accuracy-card">
+                        <h3>${metrics.target_label}</h3>
+                        <p>Model Accuracy: ${(metrics.model_accuracy * 100).toFixed(1)}%</p>
+                        <p>Baseline: ${(metrics.baseline_accuracy * 100).toFixed(1)}%</p>
+                        <p>Improvement: ${(metrics.improvement * 100).toFixed(1)}%</p>
+                    </div>
+                `;
+            }
+            html += '</div>';
+            container.innerHTML = html;
+        }
+    });
+
+// Slider controls
+document.querySelectorAll('input[type="range"]').forEach(slider => {
+    slider.addEventListener('input', function() {
+        const valueSpan = document.getElementById(this.id.replace('-slider', '-value'));
+        valueSpan.textContent = this.value;
+    });
+});
+
+// Save weights
+document.getElementById('save-weights').addEventListener('click', function() {
+    const weights = {
+        chaos_level: parseInt(document.getElementById('chaos-slider').value),
+        wet_influence: parseInt(document.getElementById('wet-slider').value),
+        reliability_influence: parseInt(document.getElementById('reliability-slider').value),
+        strategy_aggressiveness: parseInt(document.getElementById('strategy-slider').value),
+        grid_weight: parseInt(document.getElementById('grid-slider').value),
+    };
+    
+    fetch('/analytics/api/feature-weights', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(weights),
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            alert('Settings saved successfully');
+        } else {
+            alert('Error saving settings: ' + data.error);
+        }
+    });
+});
+</script>
+{% endblock %}

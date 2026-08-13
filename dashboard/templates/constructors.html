@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="constructors-container">
+    <div class="constructors-header">
+        <h1>Team Performance</h1>
+    </div>
+
+    <div class="constructors-content">
+        <div id="teams-grid" class="teams-grid">
+            <p>Loading team data...</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Load team data
+fetch('/constructors/api/teams')
+    .then(response => response.json())
+    .then(data => {
+        const container = document.getElementById('teams-grid');
+        if (data && data.length > 0) {
+            container.innerHTML = data.map(team => `
+                <div class="team-card" style="border-left: 4px solid ${team.color}">
+                    <h3>${team.name}</h3>
+                    <p>Championships: ${team.championships || 0}</p>
+                    <p>Wins: ${team.wins || 0}</p>
+                    <div class="team-drivers">
+                        ${team.drivers ? team.drivers.map(d => `<span class="driver-tag">${d.code}</span>`).join('') : ''}
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            container.innerHTML = '<p>No team data available</p>';
+        }
+    });
+</script>
+{% endblock %}

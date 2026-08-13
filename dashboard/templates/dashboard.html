@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1>Race Predictions</h1>
+        <div class="controls">
+            <select id="race-select" class="form-select">
+                <option value="">Select Race</option>
+                {% for race in calendar %}
+                <option value="{{ race.id }}">{{ race.name }} ({{ race.date }})</option>
+                {% endfor %}
+            </select>
+            <select id="session-select" class="form-select">
+                <option value="race">Race</option>
+                <option value="qualifying">Qualifying</option>
+                <option value="practice">Practice</option>
+            </select>
+            <select id="weather-select" class="form-select">
+                <option value="dry">Dry</option>
+                <option value="mixed">Mixed</option>
+                <option value="wet">Wet</option>
+            </select>
+            <button id="predict-btn" class="btn btn-primary">Generate Predictions</button>
+        </div>
+    </div>
+
+    <div class="dashboard-content">
+        <div class="predictions-section">
+            <h2>Predictions</h2>
+            <div id="predictions-container" class="predictions-grid">
+                <p class="placeholder">Select a race and click "Generate Predictions"</p>
+            </div>
+        </div>
+
+        <div class="target-section">
+            <h2>Target Selection</h2>
+            <div class="target-buttons">
+                <button class="target-btn active" data-target="podium">Podium</button>
+                <button class="target-btn" data-target="winner">Winner</button>
+                <button class="target-btn" data-target="points">Points</button>
+                <button class="target-btn" data-target="q3">Q3</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}
