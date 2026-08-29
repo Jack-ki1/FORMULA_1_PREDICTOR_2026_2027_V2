@@ -206,9 +206,10 @@ from database.models import (
     Team as TeamModel, Driver as DriverModel, Circuit as CircuitModel, Race as RaceModel,
     QualifyingResult as QualifyingResultModel, RaceResult as RaceResultModel,
     DriverStanding as DriverStandingModel, ConstructorStanding as ConstructorStandingModel,
-    Prediction as PredictionModel, UserPick as UserPickModel,
+    UserPick as UserPickModel,
     LeaderboardEntry as LeaderboardEntryModel, ModelRun as ModelRunModel, CacheEntry as CacheEntryModel
 )
+from models.prediction import Prediction as PredictionModel
 
 # Export the model classes with proper names
 Team = TeamModel

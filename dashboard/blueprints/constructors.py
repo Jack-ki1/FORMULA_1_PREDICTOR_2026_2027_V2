@@ -1,14 +1,10 @@
-"""
-Constructors blueprint - team performance analysis.
-"""
 from flask import Blueprint, render_template, jsonify
 from data.team_data import get_all_enhanced_teams, get_team_power_rankings
 
 constructors_bp = Blueprint('constructors', __name__)
 
 @constructors_bp.route('/')
-def constructors():
-    """Render constructors page."""
+def index():
     teams = get_all_enhanced_teams()
     return render_template('constructors.html', teams=teams)
 

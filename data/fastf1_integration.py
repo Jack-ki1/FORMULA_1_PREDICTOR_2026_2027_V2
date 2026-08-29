@@ -4,6 +4,7 @@ This provides detailed telemetry data for advanced analysis.
 """
 import fastf1
 from typing import Optional, Dict, List, Any
+import datetime as dt
 from config.api_settings import api_settings
 from config.settings import settings
 
@@ -16,7 +17,7 @@ class FastF1Integration:
             raise ValueError("FastF1 integration is not enabled in settings")
         
         # Configure FastF1 cache
-        if api_settings.FASTF1_CACHE_ENABLED:
+        if settings.FASTF1_CACHE_ENABLED:
             fastf1.Cache.enable_cache(settings.FASTF1_CACHE_PATH)
         else:
             fastf1.Cache.disable_cache()
@@ -25,38 +26,60 @@ class FastF1Integration:
         """
         Get a FastF1 session object.
         
-        Args:
-            year: Season year
-            round_number: Round number
-            session_type: Session type ('FP1', 'FP2', 'FP3', 'Q', 'R', 'SQ', 'S')
-        
         Returns:
             FastF1 Session object or None if unavailable
         """
         try:
             session = fastf1.get_session(year, round_number, session_type)
             session.load()
-            return session
+            return {
+                'data': session,
+                'source': 'live',
+                'provenance': {
+                    'source': 'fastf1',
+                    'cache_status': 'miss',
+                    'timestamp': dt.datetime.now().isoformat()
+                }
+            }
         except Exception as e:
             print(f"FastF1 error loading session: {e}")
-            return None
+            from data.fallback import FallbackStrategy
+            fallback_data = FallbackStrategy.get_weather_fallback()
+            return {
+                'data': fallback_data,
+                'source': 'fallback',
+                'provenance': {
+                    'source': 'fallback',
+                    'cache_status': 'fallback',
+                    'timestamp': dt.datetime.now().isoformat(),
+                    'note': 'Using simulated weather data'
+                }
+            }
     
     def get_lap_times(self, year: int, round_number: int, session_type: str) -> Dict[str, Any]:
         """
         Get lap times for a session.
         
-        Args:
-            year: Season year
-            round_number: Round number
-            session_type: Session type
-        
         Returns:
-            Dictionary with lap times data and source info
+            Dictionary with lap times data and provenance info
         """
         try:
-            session = self.get_session(year, round_number, session_type)
-            if not session:
-                return self._error_response("Session not available")
+            session_result = self.get_session(year, round_number, session_type)
+            if not session_result or not session_result['data']:
+                from data.fallback import FallbackStrategy
+                fallback_data = FallbackStrategy.get_lap_times_fallback()
+                return {
+                    'data': fallback_data['lap_times'],
+                    'source': 'fallback',
+                    'provenance': {
+                        'source': 'fallback',
+                        'cache_status': 'fallback',
+                        'timestamp': dt.datetime.now().isoformat(),
+                        'note': 'Using simulated lap times'
+                    }
+                }
+            
+            session = session_result['data']
             
             lap_data = []
             for driver in session.drivers:
@@ -79,37 +102,66 @@ class FastF1Integration:
             return {
                 'data': lap_data,
                 'source': 'live',
-                'session_info': {
-                    'year': year,
-                    'round': round_number,
-                    'session_type': session_type,
-                },
+                'provenance': {
+                    'source': 'fastf1',
+                    'cache_status': 'miss',
+                    'timestamp': dt.datetime.now().isoformat()
+                }
             }
             
         except Exception as e:
-            return self._error_response(f"FastF1 error: {str(e)}")
+            from data.fallback import FallbackStrategy
+            fallback_data = FallbackStrategy.get_lap_times_fallback()
+            return {
+                'data': fallback_data['lap_times'],
+                'source': 'fallback',
+                'provenance': {
+                    'source': 'fallback',
+                    'cache_status': 'fallback',
+                    'timestamp': dt.datetime.now().isoformat(),
+                    'note': 'Using simulated lap times'
+                }
+            }
     
     def get_telemetry(self, year: int, round_number: int, session_type: str, driver: str) -> Dict[str, Any]:
         """
         Get detailed telemetry for a specific driver.
         
-        Args:
-            year: Season year
-            round_number: Round number
-            session_type: Session type
-            driver: Driver identifier
-        
         Returns:
-            Dictionary with telemetry data and source info
+            Dictionary with telemetry data and provenance info
         """
         try:
-            session = self.get_session(year, round_number, session_type)
-            if not session:
-                return self._error_response("Session not available")
+            session_result = self.get_session(year, round_number, session_type)
+            if not session_result or not session_result['data']:
+                from data.fallback import FallbackStrategy
+                fallback_data = FallbackStrategy.get_weather_fallback()
+                return {
+                    'data': fallback_data['weather'],
+                    'source': 'fallback',
+                    'provenance': {
+                        'source': 'fallback',
+                        'cache_status': 'fallback',
+                        'timestamp': dt.datetime.now().isoformat(),
+                        'note': 'Using simulated weather data'
+                    }
+                }
+            
+            session = session_result['data']
             
             driver_laps = session.laps[session.laps['Driver'] == driver]
             if driver_laps.empty:
-                return self._error_response(f"No data for driver {driver}")
+                from data.fallback import FallbackStrategy
+                fallback_data = FallbackStrategy.get_weather_fallback()
+                return {
+                    'data': fallback_data['weather'],
+                    'source': 'fallback',
+                    'provenance': {
+                        'source': 'fallback',
+                        'cache_status': 'fallback',
+                        'timestamp': dt.datetime.now().isoformat(),
+                        'note': 'Using simulated weather data'
+                    }
+                }
             
             # Get telemetry for fastest lap
             fastest_lap = driver_laps.loc[driver_laps['LapTime'].idxmin()]
@@ -129,28 +181,51 @@ class FastF1Integration:
             return {
                 'data': telemetry_data,
                 'source': 'live',
+                'provenance': {
+                    'source': 'fastf1',
+                    'cache_status': 'miss',
+                    'timestamp': dt.datetime.now().isoformat()
+                }
             }
             
         except Exception as e:
-            return self._error_response(f"FastF1 error: {str(e)}")
+            from data.fallback import FallbackStrategy
+            fallback_data = FallbackStrategy.get_weather_fallback()
+            return {
+                'data': fallback_data['weather'],
+                'source': 'fallback',
+                'provenance': {
+                    'source': 'fallback',
+                    'cache_status': 'fallback',
+                    'timestamp': dt.datetime.now().isoformat(),
+                    'note': 'Using simulated weather data'
+                }
+            }
     
     def get_weather_data(self, year: int, round_number: int, session_type: str) -> Dict[str, Any]:
         """
         Get weather data for a session.
         
-        Args:
-            year: Season year
-            round_number: Round number
-            session_type: Session type
-        
         Returns:
-            Dictionary with weather data and source info
+            Dictionary with weather data and provenance info
         """
         try:
-            session = self.get_session(year, round_number, session_type)
-            if not session:
-                return self._error_response("Session not available")
+            session_result = self.get_session(year, round_number, session_type)
+            if not session_result or not session_result['data']:
+                from data.fallback import FallbackStrategy
+                fallback_data = FallbackStrategy.get_weather_fallback()
+                return {
+                    'data': fallback_data['weather'],
+                    'source': 'fallback',
+                    'provenance': {
+                        'source': 'fallback',
+                        'cache_status': 'fallback',
+                        'timestamp': dt.datetime.now().isoformat(),
+                        'note': 'Using simulated weather data'
+                    }
+                }
             
+            session = session_result['data']
             weather_data = session.weather_data
             
             weather_list = []
@@ -169,28 +244,51 @@ class FastF1Integration:
             return {
                 'data': weather_list,
                 'source': 'live',
+                'provenance': {
+                    'source': 'fastf1',
+                    'cache_status': 'miss',
+                    'timestamp': dt.datetime.now().isoformat()
+                }
             }
             
         except Exception as e:
-            return self._error_response(f"FastF1 error: {str(e)}")
+            from data.fallback import FallbackStrategy
+            fallback_data = FallbackStrategy.get_weather_fallback()
+            return {
+                'data': fallback_data['weather'],
+                'source': 'fallback',
+                'provenance': {
+                    'source': 'fallback',
+                    'cache_status': 'fallback',
+                    'timestamp': dt.datetime.now().isoformat(),
+                    'note': 'Using simulated weather data'
+                }
+            }
     
     def get_session_results(self, year: int, round_number: int, session_type: str) -> Dict[str, Any]:
         """
         Get session results (practice/qualifying/race).
         
-        Args:
-            year: Season year
-            round_number: Round number
-            session_type: Session type
-        
         Returns:
-            Dictionary with results data and source info
+            Dictionary with results data and provenance info
         """
         try:
-            session = self.get_session(year, round_number, session_type)
-            if not session:
-                return self._error_response("Session not available")
+            session_result = self.get_session(year, round_number, session_type)
+            if not session_result or not session_result['data']:
+                from data.fallback import FallbackStrategy
+                fallback_data = FallbackStrategy.get_standings_fallback()
+                return {
+                    'data': fallback_data['driver_standings'],
+                    'source': 'fallback',
+                    'provenance': {
+                        'source': 'fallback',
+                        'cache_status': 'fallback',
+                        'timestamp': dt.datetime.now().isoformat(),
+                        'note': 'Using simulated standings'
+                    }
+                }
             
+            session = session_result['data']
             results = session.results
             
             results_list = []
@@ -209,41 +307,23 @@ class FastF1Integration:
             return {
                 'data': results_list,
                 'source': 'live',
+                'provenance': {
+                    'source': 'fastf1',
+                    'cache_status': 'miss',
+                    'timestamp': dt.datetime.now().isoformat()
+                }
             }
             
         except Exception as e:
-            return self._error_response(f"FastF1 error: {str(e)}")
-    
-    def _error_response(self, message: str) -> Dict[str, Any]:
-        """Return error response."""
-        return {
-            'data': None,
-            'source': 'error',
-            'error': message,
-        }
-    
-    def _fallback_lap_times(self, year: int, round_number: int, session_type: str) -> Dict[str, Any]:
-        """Fallback when FastF1 is unavailable."""
-        from config.team_driver_lineup_2026 import get_all_drivers
-        
-        drivers = get_all_drivers()
-        # Generate simulated lap times based on driver strength
-        simulated_data = []
-        for driver in drivers:
-            base_time = 90.0 - (driver['strength'] * 0.2)  # Base lap time in seconds
-            for lap in range(1, 6):  # Simulate 5 laps
-                simulated_data.append({
-                    'driver': driver['code'],
-                    'lap_number': lap,
-                    'lap_time': f"{base_time + (lap * 0.1):.3f}",
-                    'sector_times': [f"{base_time * 0.4:.3f}", f"{base_time * 0.3:.3f}", f"{base_time * 0.3:.3f}"],
-                    'compound': 'Medium',
-                    'tyre_life': lap,
-                    'fresh_tyre': lap == 1,
-                })
-        
-        return {
-            'data': simulated_data,
-            'source': 'simulated',
-            'note': 'FastF1 unavailable - using simulated lap times',
-        }
+            from data.fallback import FallbackStrategy
+            fallback_data = FallbackStrategy.get_standings_fallback()
+            return {
+                'data': fallback_data['driver_standings'],
+                'source': 'fallback',
+                'provenance': {
+                    'source': 'fallback',
+                    'cache_status': 'fallback',
+                    'timestamp': dt.datetime.now().isoformat(),
+                    'note': 'Using simulated standings'
+                }
+            }

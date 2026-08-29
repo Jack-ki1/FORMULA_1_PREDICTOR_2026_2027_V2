@@ -5,7 +5,7 @@ Source of all "accuracy vs baseline" numbers.
 import numpy as np
 import pandas as pd
 from typing import Dict, List, Any, Optional
-from engine.predictor import predictor
+from engine.predictor import generate_prediction
 from config.constants import TARGETS, RANDOM_BASELINES
 
 
@@ -16,7 +16,7 @@ class BenchmarkSuite:
     """
     
     def __init__(self):
-        self.predictor = predictor
+        self.predictor = generate_prediction
         self.targets = TARGETS
         self.baselines = RANDOM_BASELINES
         self.results = {}

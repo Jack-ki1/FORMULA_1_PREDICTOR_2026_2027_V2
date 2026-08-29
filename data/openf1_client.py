@@ -2,7 +2,11 @@
 OpenF1 API client for live session and telemetry data.
 This is a new integration for real-time live timing data.
 """
+import datetime as dt
+import time
+import requests
 from typing import Optional, Dict, List, Any
+
 from data.api_client import APIClient
 from config.api_settings import api_settings
 
@@ -15,32 +19,49 @@ class OpenF1Client(APIClient):
             raise ValueError("OpenF1 API is not enabled in settings")
         super().__init__(api_settings.OPENF1_BASE_URL)
     
-    def get_sessions(self, year: int, meeting_key: Optional[int] = None) -> Dict[str, Any]:
+    def get_sessions(self, season_year: int) -> Dict[str, Any]:
         """
-        Get available sessions for a given year or meeting.
-        
-        Args:
-            year: Year to get sessions for
-            meeting_key: Optional specific meeting key
+        Get sessions for a season.
         
         Returns:
-            Dictionary with sessions data and source info
+            Dictionary with 'data', 'source', and 'provenance' keys
         """
-        params = {'year': year}
-        if meeting_key:
-            params['meeting_key'] = meeting_key
-        
-        endpoint = api_settings.get_endpoint('openf1', 'sessions')
-        
-        if not endpoint:
-            return self._error_response("Sessions endpoint not configured")
-        
-        response = self.get(endpoint, params=params, cache_ttl=api_settings.CACHE_TTL_SHORT)
-        
-        if response['source'] == 'error':
-            return self._fallback_sessions(year)
-        
-        return response
+        try:
+            response = self.get(
+                f'/v1/sessions',
+                timeout=30,
+                cache_ttl=60
+            )
+            
+            # If request failed, use fallback
+            if response['source'] == 'error':
+                from data.fallback import FallbackStrategy
+                fallback_data = FallbackStrategy.get_grid_fallback()
+                return {
+                    'data': fallback_data,
+                    'source': 'fallback',
+                    'provenance': {
+                        'source': 'fallback',
+                        'cache_status': 'fallback',
+                        'timestamp': dt.dt.datetime.now().isoformat(),
+                        'note': 'Using simulated grid positions'
+                    }
+                }
+            
+            return response
+        except Exception as e:
+            from data.fallback import FallbackStrategy
+            fallback_data = FallbackStrategy.get_grid_fallback()
+            return {
+                'data': fallback_data,
+                'source': 'fallback',
+                'provenance': {
+                    'source': 'fallback',
+                    'cache_status': 'fallback',
+                    'timestamp': dt.datetime.now().isoformat(),
+                    'note': 'Using simulated grid positions'
+                }
+            }
     
     def get_session_key(self, meeting_key: int, session_name: str) -> Optional[int]:
         """
@@ -67,26 +88,47 @@ class OpenF1Client(APIClient):
     
     def get_drivers(self, session_key: int) -> Dict[str, Any]:
         """
-        Get driver list for a specific session.
-        
-        Args:
-            session_key: Session identifier
+        Get drivers for a session.
         
         Returns:
-            Dictionary with driver data and source info
+            Dictionary with 'data', 'source', and 'provenance' keys
         """
-        params = {'session_key': session_key}
-        endpoint = api_settings.get_endpoint('openf1', 'drivers')
-        
-        if not endpoint:
-            return self._error_response("Drivers endpoint not configured")
-        
-        response = self.get(endpoint, params=params, cache_ttl=api_settings.CACHE_TTL_SHORT)
-        
-        if response['source'] == 'error':
-            return self._fallback_drivers(session_key)
-        
-        return response
+        try:
+            response = self.get(
+                f'/v1/drivers?session_key={session_key}',
+                timeout=self.settings.LONG_TIMEOUT,
+                cache_ttl=self.api_settings.CACHE_TTL_LONG
+            )
+            
+            # If request failed, use fallback
+            if response['source'] == 'error':
+                from data.fallback import FallbackStrategy
+                fallback_data = FallbackStrategy.get_standings_fallback()
+                return {
+                    'data': fallback_data,
+                    'source': 'fallback',
+                    'provenance': {
+                        'source': 'fallback',
+                        'cache_status': 'fallback',
+                        'timestamp': dt.datetime.now().isoformat(),
+                        'note': 'Using simulated standings'
+                    }
+                }
+            
+            return response
+        except Exception as e:
+            from data.fallback import FallbackStrategy
+            fallback_data = FallbackStrategy.get_standings_fallback()
+            return {
+                'data': fallback_data,
+                'source': 'fallback',
+                'provenance': {
+                    'source': 'fallback',
+                    'cache_status': 'fallback',
+                    'timestamp': dt.datetime.now().isoformat(),
+                    'note': 'Using simulated standings'
+                }
+            }
     
     def get_live_positions(self, session_key: int) -> Dict[str, Any]:
         """
@@ -254,4 +296,96 @@ class OpenF1Client(APIClient):
             'data': [],
             'source': 'simulated',
             'note': 'OpenF1 API unavailable - no race control data',
+        }
+    
+    def _make_request(
+        self,
+        method: str,
+        endpoint: str,
+        params: Optional[Dict] = None,
+        data: Optional[Dict] = None,
+        timeout: int = None,
+        use_cache: bool = True,
+        cache_ttl: int = None,
+    ) -> Dict:
+        """
+        Make HTTP request with retry logic and caching.
+        
+        Returns:
+            Response dictionary with 'data', 'source', and 'provenance' keys
+        """
+        url = self._build_url(endpoint)
+        timeout = timeout or api_settings.DEFAULT_TIMEOUT
+        
+        # Try cache first for GET requests
+        if method.upper() == 'GET' and use_cache:
+            cache_key = self._get_cache_key(url, params)
+            cached_response = self._get_cached_response(cache_key)
+            if cached_response:
+                return {
+                    'data': cached_response,
+                    'source': 'cached',
+                    'provenance': {
+                        'source': 'openf1',
+                        'cache_status': 'hit',
+                        'timestamp': dt.datetime.now().isoformat()
+                    }
+                }
+        
+        # Make request with retry logic
+        last_exception = None
+        for attempt in range(api_settings.MAX_RETRIES):
+            try:
+                response = self.session.request(
+                    method=method,
+                    url=url,
+                    params=params,
+                    json=data,
+                    timeout=timeout,
+                )
+                
+                response.raise_for_status()
+                response_data = response.json()
+                
+                # Cache successful GET responses
+                if method.upper() == 'GET' and use_cache:
+                    self._cache_response(cache_key, response_data, cache_ttl)
+                
+                return {
+                    'data': response_data,
+                    'source': 'live',
+                    'provenance': {
+                        'source': 'openf1',
+                        'cache_status': 'miss',
+                        'timestamp': dt.datetime.now().isoformat()
+                    }
+                }
+                
+            except requests.exceptions.HTTPError as e:
+                last_exception = e
+                if response.status_code not in api_settings.RETRY_STATUS_CODES:
+                    raise
+                
+                # Don't retry client errors (4xx) except rate limit (429)
+                if 400 <= response.status_code < 500 and response.status_code != 429:
+                    raise
+            
+            except requests.exceptions.RequestException as e:
+                last_exception = e
+            
+            # Exponential backoff
+            if attempt < api_settings.MAX_RETRIES - 1:
+                backoff_time = api_settings.RETRY_BACKOFF_FACTOR ** attempt
+                time.sleep(backoff_time)
+        
+        # All retries failed
+        return {
+            'data': None,
+            'source': 'error',
+            'provenance': {
+                'source': 'openf1',
+                'cache_status': 'error',
+                'timestamp': dt.datetime.now().isoformat(),
+                'error': str(last_exception)
+            }
         }

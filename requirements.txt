@@ -2,6 +2,8 @@
 Flask==3.0.0
 Flask-CORS==4.0.0
 Werkzeug==3.0.1
+pydantic==2.9.2
+pydantic-settings==2.6.1
 
 # Database
 SQLAlchemy==2.0.23

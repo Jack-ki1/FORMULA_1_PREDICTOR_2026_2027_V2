@@ -51,10 +51,10 @@ class LiveUpdater:
             client = JolpicaClient()
             
             # Update driver standings
-            client.get_driver_standings()
+            client.get_driver_standings(settings.SEASON_YEAR)
             
             # Update constructor standings
-            client.get_constructor_standings()
+            client.get_constructor_standings(settings.SEASON_YEAR)
             
             print("Jolpica data updated successfully")
             

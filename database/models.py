@@ -45,7 +45,6 @@ class Driver(Base):
     driver_standings = relationship("DriverStanding", back_populates="driver")
     qualifying_results = relationship("QualifyingResult", back_populates="driver")
     race_results = relationship("RaceResult", back_populates="driver")
-    predictions = relationship("Prediction", back_populates="driver")
     user_picks = relationship("UserPick", back_populates="driver")
 
 
@@ -82,7 +81,6 @@ class Race(Base):
     circuit = relationship("Circuit", back_populates="races")
     qualifying_results = relationship("QualifyingResult", back_populates="race")
     race_results = relationship("RaceResult", back_populates="race")
-    predictions = relationship("Prediction", back_populates="race")
 
 
 class QualifyingResult(Base):
@@ -154,25 +152,6 @@ class ConstructorStanding(Base):
     
     # Relationships
     team = relationship("Team", back_populates="constructor_standings")
-
-
-class Prediction(Base):
-    """Model predictions storage."""
-    __tablename__ = 'predictions'
-    
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    race_id = Column(Integer, ForeignKey('races.id'), nullable=False)
-    session = Column(String(20), nullable=False)  # race, qualifying, practice
-    target = Column(String(20), nullable=False)  # winner, podium, points, q3
-    driver_id = Column(String(50), ForeignKey('drivers.id'), nullable=False)
-    probability = Column(Float, nullable=False)
-    model_version = Column(String(20))
-    feature_weights = Column(Text)  # JSON string of weights
-    created_at = Column(DateTime, default=datetime.utcnow)
-    
-    # Relationships
-    race = relationship("Race", back_populates="predictions")
-    driver = relationship("Driver", back_populates="predictions")
 
 
 class UserPick(Base):

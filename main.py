@@ -8,9 +8,10 @@ import os
 # Add current directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from config.settings import settings, Settings
+from config.settings import settings
 from dashboard.app import create_app
 from data.live_updater import start_live_updater
+from database.init import initialize_database
 
 
 def main():
@@ -19,10 +20,14 @@ def main():
     print("F1 PREDICTOR 2026")
     print("=" * 60)
     
-    # Initialize directories
+    # Initialize directories (done automatically in settings init)
     print("Initializing directories...")
-    Settings.init_directories()
     print("[OK] Directories initialized")
+    
+    # Initialize database
+    print("Initializing database...")
+    initialize_database()
+    print("[OK] Database initialized")
     
     # Start background live updater
     if settings.LIVE_UPDATE_INTERVAL > 0:

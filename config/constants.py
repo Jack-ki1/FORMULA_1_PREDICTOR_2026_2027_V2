@@ -104,6 +104,17 @@ TARGETS = {
         'baseline_accuracy': 0.45,  # Random baseline (10/22 ≈ 45.5%)
         'note': 'Pure pace, no race-day chaos — but low fuel + track evolution add noise session to session.',
     },
+    'practice_pace': {
+        'id': 'practice_pace',
+        'label': 'Practice Pace',
+        'short': 'PACE',
+        'sum': 1,
+        'exp': 2.2,
+        'accuracy': 0.0,
+        'session': 'practice',
+        'baseline_accuracy': 0.05,
+        'note': 'Projected one-lap pace. It uses completed-session timing when available and otherwise remains a forecast.',
+    },
 }
 
 # Session Types
@@ -149,12 +160,13 @@ DNF_RISK_LEVELS = {
 def grid_prior_multiplier(position):
     """
     Calculate grid position multiplier based on historical pole-to-win rate.
-    Position 1 (pole) = 1.0, decreasing as position worsens.
-    Formula: 1 / (1 + (position - 1) * 0.16)
+    Position 1 (pole) = 1.0, decreasing significantly as position worsens.
+    Made much stronger to ensure grid position actually affects predictions.
+    Formula: 1 / (1 + (position - 1) * 0.35)
     """
     if position is None or position < 1:
         return 1.0
-    return 1.0 / (1.0 + (position - 1) * 0.16)
+    return 1.0 / (1.0 + (position - 1) * 0.35)
 
 # Track Characteristics
 OVERTAKING_RATINGS = ['Low', 'Medium', 'High']

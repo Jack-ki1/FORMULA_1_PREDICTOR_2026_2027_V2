@@ -9,7 +9,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config.feature_weights import feature_weights
-from engine.predictor import predictor
+from engine.predictor import generate_prediction
 
 
 def optimize_weights():

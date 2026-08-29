@@ -4,320 +4,132 @@ This is the main entry point for generating predictions.
 """
 import numpy as np
 import pandas as pd
-from typing import Dict, List, Any, Optional
-from engine.feature_engineering import feature_engineer
-from engine.ml_models import model_zoo
-from engine.probability_model import probability_model
-from config.team_driver_lineup_2026 import get_all_drivers, get_driver_by_code
-from config.constants import TARGETS, is_valid_target
-from config.feature_weights import feature_weights
+import logging
+import json
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, cast, Union
+from config.settings import settings
+from data.session_context import build_session_context
+from data.validation import validate_prediction_data
+from data.fallback import FallbackStrategy
+from models.prediction import Prediction
+from database.client import DatabaseClient
+from engine.grid_model import calculate_grid_positions
+from engine.probability_model import (
+    calculate_winner_probabilities,
+    enforce_probability_sum,
+    calibrate_probabilities,
+    calculate_confidence_intervals,
+    detect_model_drift,
+    save_prediction_metadata
+)
+from cache.redis import get_cache
 
+logger = logging.getLogger(__name__)
 
-class Predictor:
+def generate_prediction(race_id: str, session_type: str) -> Dict[str, Any]:
     """
-    Main prediction orchestrator.
-    Coordinates feature engineering, model inference, and probability shaping.
+    Generate comprehensive prediction for a race session.
+    
+    Returns:
+        Dictionary containing grid positions, winner probabilities, and metadata
     """
+    # Create cache key
+    cache_key = f"prediction:{race_id}:{session_type}"
     
-    def __init__(self):
-        self.feature_engineer = feature_engineer
-        self.model_zoo = model_zoo
-        self.probability_model = probability_model
-        self.drivers = get_all_drivers()
-        
-        # Load trained models if available
-        try:
-            self.model_zoo.load_models()
-        except Exception as e:
-            print(f"Could not load trained models: {e}")
+    # Try to get from cache first
+    if settings.CACHE_ENABLED:
+        cache = get_cache()
+        cached_result = cache.get(cache_key)
+        if cached_result:
+            logger.info(f"Retrieved prediction for race {race_id} from cache")
+            return json.loads(cached_result)
     
-    def predict(
-        self,
-        race_id: str,
-        target_id: str,
-        session_type: str = 'race',
-        weather: str = 'dry',
-        grid_positions: Optional[Dict[str, int]] = None,
-        feature_weights: Optional[Dict[str, float]] = None,
-        use_ensemble: bool = True,
-    ) -> Dict[str, Any]:
-        """
-        Generate predictions for a specific target.
+    try:
+        logger.info(f"Starting prediction generation for race {race_id}, session {session_type}")
         
-        Args:
-            race_id: Race identifier
-            target_id: Target identifier (winner, podium, points, q3)
-            session_type: Session type (race, qualifying, practice)
-            weather: Weather condition (dry, mixed, wet)
-            grid_positions: Dictionary of driver codes to grid positions
-            feature_weights: Feature weight overrides
-            use_ensemble: Whether to use ensemble of models
+        # Calculate grid positions
+        grid_positions = calculate_grid_positions(race_id, session_type)
         
-        Returns:
-            Comprehensive prediction results
-        """
-        # Validate inputs
-        if not is_valid_target(target_id):
-            return self._error_response(f"Invalid target: {target_id}")
+        # Calculate winner probabilities
+        winner_probabilities = calculate_winner_probabilities(race_id, session_type)
         
-        target = TARGETS[target_id.lower()]
+        # Apply probability calibration
+        from engine.probability_model import calibrate_probabilities
+        calibrated_probabilities = calibrate_probabilities(winner_probabilities)
         
-        # Use default weights if not provided
-        weights = feature_weights or feature_weights.get_defaults()
+        # Calculate confidence intervals
+        from engine.probability_model import calculate_confidence_intervals
+        confidence_intervals = calculate_confidence_intervals(calibrated_probabilities)
         
-        # Build features for all drivers
-        features_dict = self.feature_engineer.build_session_features(
-            race_id,
-            weather,
-            session_type,
-            grid_positions,
-            weights,
-        )
+        # Detect model drift
+        from engine.probability_model import detect_model_drift
+        model_drift_score = detect_model_drift(calibrated_probabilities)
         
-        # Convert to DataFrame for ML models
-        features_df = self.feature_engineer.features_to_dataframe(features_dict)
+        # Save predictions to database
+        save_predictions_to_database(race_id, session_type, grid_positions, calibrated_probabilities, confidence_intervals)
         
-        # Get raw scores from ML models
-        raw_scores = self._get_raw_scores(features_df, use_ensemble)
+        # Save prediction metadata
+        from engine.probability_model import save_prediction_metadata
+        save_prediction_metadata(race_id, session_type, calibrated_probabilities, confidence_intervals, model_drift_score)
         
-        # Shape probabilities
-        chaos_level = weights.get('chaos_level', 50)
-        probabilities = self.probability_model.shape_probabilities(
-            raw_scores,
-            target_id,
-            chaos_level,
-            weights,
-        )
-        
-        # Apply DNF risk adjustment
-        reliability_scores = {d['code']: d['reliability'] for d in self.drivers}
-        reliability_influence = weights.get('reliability_influence', 50)
-        probabilities = self.probability_model.apply_dnf_risk(
-            probabilities,
-            reliability_scores,
-            reliability_influence,
-            weather,
-        )
-        
-        # Apply grid weight for race sessions
-        if session_type == 'race' and grid_positions:
-            grid_weight = weights.get('grid_weight', 55)
-            probabilities = self.probability_model.apply_grid_weight(
-                probabilities,
-                grid_positions,
-                grid_weight,
-            )
-        
-        # Calibrate probabilities
-        probabilities = self.probability_model.calibrate_probabilities(
-            probabilities,
-            target_id,
-        )
-        
-        # Calculate confidence score
-        confidence = self.probability_model.get_confidence_score(
-            probabilities,
-            target_id,
-        )
-        
-        # Generate comprehensive summary
-        summary = self.probability_model.generate_prediction_summary(
-            probabilities,
-            target_id,
-            confidence,
-            source='model',
-        )
-        
-        # Add additional context
-        summary['race_id'] = race_id
-        summary['session_type'] = session_type
-        summary['weather'] = weather
-        summary['feature_weights'] = weights
-        summary['feature_matrix'] = features_dict
-        
-        return summary
-    
-    def predict_multiple_targets(
-        self,
-        race_id: str,
-        session_type: str = 'race',
-        weather: str = 'dry',
-        grid_positions: Optional[Dict[str, int]] = None,
-        feature_weights: Optional[Dict[str, float]] = None,
-        targets: Optional[List[str]] = None,
-    ) -> Dict[str, Dict[str, Any]]:
-        """
-        Generate predictions for multiple targets.
-        
-        Args:
-            race_id: Race identifier
-            session_type: Session type
-            weather: Weather condition
-            grid_positions: Grid positions
-            feature_weights: Feature weights
-            targets: List of target IDs (defaults to all)
-        
-        Returns:
-            Dictionary mapping target IDs to prediction results
-        """
-        targets = targets or list(TARGETS.keys())
-        
-        results = {}
-        for target_id in targets:
-            try:
-                # Filter targets by session type
-                target = TARGETS[target_id.lower()]
-                if target['session'] != session_type:
-                    continue
-                
-                result = self.predict(
-                    race_id,
-                    target_id,
-                    session_type,
-                    weather,
-                    grid_positions,
-                    feature_weights,
-                )
-                results[target_id] = result
-            except Exception as e:
-                results[target_id] = self._error_response(str(e))
-        
-        return results
-    
-    def predict_session(
-        self,
-        race_id: str,
-        session_type: str = 'race',
-        weather: str = 'dry',
-        grid_positions: Optional[Dict[str, int]] = None,
-        feature_weights: Optional[Dict[str, float]] = None,
-    ) -> Dict[str, Any]:
-        """
-        Generate predictions for all applicable targets in a session.
-        
-        Args:
-            race_id: Race identifier
-            session_type: Session type
-            weather: Weather condition
-            grid_positions: Grid positions
-            feature_weights: Feature weights
-        
-        Returns:
-            Session prediction results
-        """
-        # Get applicable targets for this session
-        applicable_targets = [
-            target_id for target_id, target in TARGETS.items()
-            if target['session'] == session_type
-        ]
-        
-        predictions = self.predict_multiple_targets(
-            race_id,
-            session_type,
-            weather,
-            grid_positions,
-            feature_weights,
-            applicable_targets,
-        )
-        
-        return {
+        # Prepare response
+        result = {
             'race_id': race_id,
             'session_type': session_type,
-            'weather': weather,
-            'predictions': predictions,
-            'feature_weights': feature_weights or feature_weights.get_defaults(),
+            'grid_positions': grid_positions,
+            'winner_probabilities': calibrated_probabilities,
+            'confidence_intervals': confidence_intervals,
+            'model_drift_score': model_drift_score,
+            'timestamp': str(datetime.utcnow()),
+            'status': 'success'
         }
-    
-    def _get_raw_scores(self, features_df: pd.DataFrame, use_ensemble: bool) -> Dict[str, float]:
-        """
-        Get raw prediction scores from ML models.
         
-        Args:
-            features_df: Feature DataFrame
-            use_ensemble: Whether to use ensemble
+        # Cache the result
+        if settings.CACHE_ENABLED:
+            cache.set(cache_key, result, ttl=settings.CACHE_TTL_SECONDS)
         
-        Returns:
-            Dictionary of driver codes to raw scores
-        """
-        raw_scores = {}
+        logger.info(f"Successfully generated prediction for race {race_id}")
+        return result
         
-        if use_ensemble and self.model_zoo.active_models:
-            # Use ensemble of trained models
-            model_predictions = self.model_zoo.predict_all(features_df)
-            
-            # Average predictions from all models
-            ensemble_scores = {}
-            for model_name, predictions in model_predictions.items():
-                if predictions is not None:
-                    for i, driver_code in enumerate(features_df.index):
-                        if driver_code not in ensemble_scores:
-                            ensemble_scores[driver_code] = []
-                        # Use probability of positive class
-                        prob = predictions[i][1] if len(predictions[i]) > 1 else predictions[i][0]
-                        ensemble_scores[driver_code].append(prob)
-            
-            # Average ensemble scores
-            for driver_code, scores in ensemble_scores.items():
-                raw_scores[driver_code] = np.mean(scores)
-            
-            # If ensemble didn't produce results, fall back to feature-based scoring
-            if not raw_scores:
-                raw_scores = self._feature_based_scoring(features_df)
-        else:
-            # Use feature-based scoring
-            raw_scores = self._feature_based_scoring(features_df)
-        
-        return raw_scores
-    
-    def _feature_based_scoring(self, features_df: pd.DataFrame) -> Dict[str, float]:
-        """
-        Generate scores based on features when ML models are unavailable.
-        
-        Args:
-            features_df: Feature DataFrame
-        
-        Returns:
-            Dictionary of driver codes to scores
-        """
-        scores = {}
-        
-        for driver_code in features_df.index:
-            features = features_df.loc[driver_code]
-            
-            # Simple weighted combination of key features
-            score = (
-                features['strength'] * 0.4 +
-                features['reliability'] * 0.2 +
-                features['wet_skill'] * features['weather_wet'] * 0.15 +
-                features['strength_x_circuit'] * 0.15 +
-                features['grid_multiplier'] * features.get('grid_weight', 0) * 0.1
-            )
-            
-            scores[driver_code] = score
-        
-        return scores
-    
-    def _error_response(self, message: str) -> Dict[str, Any]:
-        """Generate error response."""
-        return {
-            'error': message,
-            'source': 'error',
-            'predictions': [],
-            'confidence': 0.0,
-        }
-    
-    def get_model_info(self) -> Dict[str, Any]:
-        """Get information about available models."""
-        return {
-            'available_models': list(self.model_zoo.models.keys()),
-            'active_models': self.model_zoo.active_models,
-            'trained_models': [
-                name for name, model in self.model_zoo.models.items()
-                if model.is_trained
-            ],
-            'feature_names': self.feature_engineer.get_feature_names(),
-        }
+    except Exception as e:
+        logger.error(f"Error generating prediction for race {race_id}: {e}")
+        raise
 
 
-# Global predictor instance
-predictor = Predictor()
+def save_predictions_to_database(
+    race_id: str, 
+    session_type: str, 
+    grid_positions: Dict[str, int], 
+    winner_probabilities: Dict[str, float], 
+    confidence_intervals: Dict[str, Dict[str, float]]
+) -> bool:
+    """Save predictions to database."""
+    try:
+        db_client = DatabaseClient()
+        with db_client.get_session() as db:
+            # Save each driver's prediction
+            for driver_code, position in grid_positions.items():
+                probability = winner_probabilities.get(driver_code, 0.0)
+                confidence = confidence_intervals.get(driver_code, {})
+                
+                # Create prediction record
+                prediction = Prediction(
+                    race_id=race_id,
+                    session_type=session_type,
+                    prediction_type='winner',
+                    driver_code=driver_code,
+                    probability=probability,
+                    confidence_interval=confidence,
+                    created_at=datetime.utcnow()
+                )
+                
+                db.add(prediction)
+            
+            db.commit()
+            logger.info(f"Saved {len(grid_positions)} predictions to database")
+            return True
+            
+    except Exception as e:
+        logger.error(f"Error saving predictions to database: {e}")
+        return False

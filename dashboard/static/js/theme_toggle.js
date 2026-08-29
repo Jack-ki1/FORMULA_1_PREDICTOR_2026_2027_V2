@@ -1,76 +1,38 @@
-// Theme toggle functionality - mirrors the JSX's Proxy-based theme system
+/**
+ * theme_toggle.js — dark/light mode switch.
+ * Persists choice in localStorage and fires "f1:theme-change" so any page
+ * with live charts can redraw them in the new palette.
+ */
+(function () {
+  "use strict";
 
-class ThemeManager {
-    constructor() {
-        this.currentTheme = localStorage.getItem('f1-theme') || 'light';
-        this.init();
-    }
-    
-    init() {
-        this.applyTheme(this.currentTheme);
-        this.createToggleButton();
-    }
-    
-    applyTheme(theme) {
-        this.currentTheme = theme;
-        document.documentElement.setAttribute('data-theme', theme);
-        localStorage.setItem('f1-theme', theme);
-        
-        // Update CSS variables
-        if (theme === 'dark') {
-            document.documentElement.style.setProperty('--f1-bg', '#0A0C10');
-            document.documentElement.style.setProperty('--f1-surface', '#15181F');
-            document.documentElement.style.setProperty('--f1-border', '#2B3039');
-            document.documentElement.style.setProperty('--f1-text', '#F1F2F5');
-            document.documentElement.style.setProperty('--f1-sub', '#9BA2AF');
-        } else {
-            document.documentElement.style.setProperty('--f1-bg', '#F4F5F7');
-            document.documentElement.style.setProperty('--f1-surface', '#FFFFFF');
-            document.documentElement.style.setProperty('--f1-border', '#E3E5EA');
-            document.documentElement.style.setProperty('--f1-text', '#15151E');
-            document.documentElement.style.setProperty('--f1-sub', '#6B7280');
-        }
-    }
-    
-    toggleTheme() {
-        const newTheme = this.currentTheme === 'light' ? 'dark' : 'light';
-        this.applyTheme(newTheme);
-        return newTheme;
-    }
-    
-    createToggleButton() {
-        // Find or create theme toggle button
-        let toggleBtn = document.getElementById('theme-toggle');
-        
-        if (!toggleBtn) {
-            toggleBtn = document.createElement('button');
-            toggleBtn.id = 'theme-toggle';
-            toggleBtn.className = 'theme-toggle';
-            toggleBtn.innerHTML = this.currentTheme === 'light' ? '🌙' : '☀️';
-            toggleBtn.title = 'Toggle theme';
-            
-            // Add to navbar
-            const navbar = document.querySelector('.nav-container');
-            if (navbar) {
-                navbar.appendChild(toggleBtn);
-            }
-            
-            toggleBtn.addEventListener('click', () => {
-                const newTheme = this.toggleTheme();
-                toggleBtn.innerHTML = newTheme === 'light' ? '🌙' : '☀️';
-            });
-        }
-    }
-    
-    getCurrentTheme() {
-        return this.currentTheme;
-    }
-}
+  function applyIcon(theme) {
+    const moon = document.getElementById("icon-moon");
+    const sun = document.getElementById("icon-sun");
+    if (!moon || !sun) return;
+    moon.style.display = theme === "dark" ? "none" : "block";
+    sun.style.display = theme === "dark" ? "block" : "none";
+  }
 
-// Initialize theme manager
-const themeManager = new ThemeManager();
+  function setTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    try { localStorage.setItem("f1-theme", theme); } catch (e) {}
+    applyIcon(theme);
+    document.dispatchEvent(new CustomEvent("f1:theme-change", { detail: { theme } }));
+  }
 
-// Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = ThemeManager;
-}
+  document.addEventListener("DOMContentLoaded", function () {
+    const current = document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+    applyIcon(current);
+
+    const btn = document.getElementById("theme-toggle-btn");
+    if (btn) {
+      btn.addEventListener("click", function () {
+        const now = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+        setTheme(now);
+      });
+    }
+  });
+
+  window.F1Theme = { setTheme: setTheme };
+})();

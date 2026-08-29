@@ -1,6 +1,3 @@
-"""
-Standings blueprint - live driver and constructor championship standings.
-"""
 from flask import Blueprint, render_template, jsonify
 from data.season_2026 import get_driver_standings, get_constructor_standings
 from data.jolpica_client import JolpicaClient
@@ -8,8 +5,7 @@ from data.jolpica_client import JolpicaClient
 standings_bp = Blueprint('standings', __name__)
 
 @standings_bp.route('/')
-def standings():
-    """Render standings page."""
+def index():
     return render_template('standings.html')
 
 @standings_bp.route('/api/driver-standings')
@@ -17,7 +13,8 @@ def api_driver_standings():
     """Get driver championship standings."""
     try:
         client = JolpicaClient()
-        result = client.get_driver_standings()
+        from config.settings import settings
+        result = client.get_driver_standings(settings.SEASON_YEAR)
         
         if result['source'] == 'live':
             return jsonify(result)

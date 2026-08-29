@@ -7,7 +7,8 @@ import time
 import json
 import hashlib
 import os
-from datetime import datetime, timedelta
+import datetime as dt
+from datetime import timedelta
 from typing import Optional, Dict, Any
 from config.settings import settings
 from config.api_settings import api_settings
@@ -33,6 +34,12 @@ class APIClient:
     def _get_cache_path(self, cache_key: str) -> str:
         """Get cache file path for a cache key."""
         return os.path.join(settings.API_RESPONSES_CACHE, f"{cache_key}.json")
+
+    def _build_url(self, endpoint: str) -> str:
+        """Accept either a relative endpoint or a fully-qualified endpoint."""
+        if endpoint.startswith(('http://', 'https://')):
+            return endpoint
+        return f"{self.base_url}/{endpoint.lstrip('/')}"
     
     def _get_cached_response(self, cache_key: str) -> Optional[Dict]:
         """Get cached response if available and not expired."""
@@ -51,7 +58,7 @@ class APIClient:
             cached_time = datetime.fromisoformat(cached_data.get('timestamp', ''))
             ttl = cached_data.get('ttl', api_settings.CACHE_TTL_DEFAULT)
             
-            if datetime.now() - cached_time < timedelta(seconds=ttl):
+            if dt.datetime.now() - cached_time < timedelta(seconds=ttl):
                 return cached_data.get('data')
             else:
                 # Remove expired cache
@@ -69,12 +76,13 @@ class APIClient:
         ttl = ttl or api_settings.CACHE_TTL_DEFAULT
         
         cache_data = {
-            'timestamp': datetime.now().isoformat(),
+            'timestamp': dt.datetime.now().isoformat(),
             'ttl': ttl,
             'data': data,
         }
         
         try:
+            os.makedirs(settings.API_RESPONSES_CACHE, exist_ok=True)
             with open(cache_path, 'w') as f:
                 json.dump(cache_data, f)
         except (IOError, json.JSONDecodeError):
@@ -105,7 +113,7 @@ class APIClient:
         Returns:
             Response data as dictionary
         """
-        url = f"{self.base_url}/{endpoint.lstrip('/')}"
+        url = self._build_url(endpoint)
         timeout = timeout or api_settings.DEFAULT_TIMEOUT
         
         # Try cache first for GET requests

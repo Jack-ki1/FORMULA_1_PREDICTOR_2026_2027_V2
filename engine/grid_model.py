@@ -2,12 +2,112 @@
 Grid model - real qualifying → grid, simulated fallback, manual override.
 Implements the gridPriorMultiplier based on ~43% historical pole-to-win rate.
 """
+import logging
 import numpy as np
-from typing import Dict, List, Any, Optional
-from config.team_driver_lineup_2026 import get_all_drivers
+from typing import Dict, List, Optional, Any
 from config.constants import grid_prior_multiplier
+from config.settings import settings
 from data.jolpica_client import JolpicaClient
+from config.team_driver_lineup_2026 import get_all_drivers
+from data.openf1_client import OpenF1Client
+from data.fastf1_integration import FastF1Integration
+from data.session_context import build_session_context
+from data.validation import DataValidator
+from data.fallback import FallbackStrategy
+from models.prediction import Prediction, SessionData
+from database.client import DatabaseClient
 
+logger = logging.getLogger(__name__)
+
+
+def generate_fallback_grid(all_drivers, session_context=None):
+    """Generate a fallback grid based on driver strength when session context is incomplete."""
+    grid = {}
+    sorted_drivers = sorted(all_drivers, key=lambda d: d.get('strength', 50), reverse=True)
+    for i, driver in enumerate(sorted_drivers):
+        grid[driver['code']] = i + 1
+    return grid
+
+
+def calculate_grid_positions(race_id: str, session_type: str) -> Dict[str, int]:
+    """
+    Calculate grid positions for a race session.
+    
+    Returns:
+        Dictionary mapping driver codes to grid positions
+    """
+    try:
+        logger.info(f"Calculating grid positions for race {race_id}, session {session_type}")
+        
+        # Build session context with all available data sources
+        session_context = build_session_context(race_id, session_type)
+        
+        # Get all drivers for the season
+        all_drivers = get_all_drivers()
+        driver_codes = [d['code'] for d in all_drivers]
+        
+        # Initialize grid positions
+        grid_positions = {}
+        
+        # Apply grid prior multiplier (default 1.0 if not defined)
+        grid_prior_multiplier = getattr(settings, 'GRID_PRIOR_MULTIPLIER', 1.0)
+        
+        # Process each driver
+        for driver_code in driver_codes:
+            # Get driver-specific data from session context
+            strength = session_context.get('strength_adjustments', {}).get(driver_code, 0.0)
+            
+            # Calculate grid position based on strength and available data
+            base_position = 11  # midfield default
+            performance_factor = 1.0 - strength  # higher strength = lower (better) position
+            
+            # Apply grid prior multiplier
+            adjusted_position = base_position * performance_factor * grid_prior_multiplier
+            
+            # Round to nearest integer and ensure it's within valid range
+            grid_position = max(1, min(20, round(adjusted_position)))
+            
+            # Store in grid positions
+            grid_positions[driver_code] = grid_position
+        
+        # If we don't have positions for all drivers, use fallback
+        if len(grid_positions) < len(driver_codes):
+            fallback_grid = generate_fallback_grid(all_drivers, session_context)
+            grid_positions.update(fallback_grid)
+        
+        logger.info(f"Calculated grid positions for {len(grid_positions)} drivers")
+        return grid_positions
+        
+    except Exception as e:
+        logger.error(f"Error calculating grid positions: {e}")
+        raise
+
+
+def save_session_data_to_database(race_id: str, session_type: str, session_context: Dict[str, Any]):
+    """Save session context data to database."""
+    try:
+        db_client = DatabaseClient()
+        
+        # Create session data record
+        session_data = SessionData(
+            race_id=race_id,
+            session_type=session_type,
+            strength_adjustments=session_context['strength_adjustments'],
+            grid_positions=session_context['grid_positions'],
+            sources=session_context['sources']
+        )
+        
+        # Save to database
+        with db_client.get_session() as db:
+            db.add(session_data)
+            db.commit()
+            db.refresh(session_data)
+        
+        logger.info(f"Saved session data for race {race_id}, session {session_type}")
+        
+    except Exception as e:
+        logger.error(f"Error saving session data for race {race_id}: {e}")
+        raise
 
 class GridModel:
     """
@@ -112,21 +212,20 @@ class GridModel:
         current_drivers = self.drivers.copy()
         grid_positions = {}
         
-        # Simulate Q1 (eliminate slowest 5)
+        # With the 22-car 2026 field the three sessions are 22→16→10.
+        # This preserves the familiar ten-car Q3 and assigns every grid slot.
         q1_results = self._simulate_session(current_drivers, session_variance=0.8)
-        eliminated_q1 = q1_results[-5:]
-        for driver in eliminated_q1:
-            position = 16 + q1_results.index(driver)  # Positions 16-20
+        eliminated_q1 = q1_results[-6:]
+        for position, driver in enumerate(eliminated_q1, start=17):
             grid_positions[driver['code']] = position
         
         # Q2 participants
         q2_drivers = [d for d in current_drivers if d not in eliminated_q1]
         
-        # Simulate Q2 (eliminate slowest 5)
+        # Simulate Q2 (eliminate slowest 6)
         q2_results = self._simulate_session(q2_drivers, session_variance=0.6)
-        eliminated_q2 = q2_results[-5:]
-        for driver in eliminated_q2:
-            position = 11 + q2_results.index(driver)  # Positions 11-15
+        eliminated_q2 = q2_results[-6:]
+        for position, driver in enumerate(eliminated_q2, start=11):
             grid_positions[driver['code']] = position
         
         # Q3 participants
