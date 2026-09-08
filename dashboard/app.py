@@ -43,6 +43,12 @@ def create_app():
     app.register_blueprint(analytics_settings_bp, url_prefix='/analytics')
     # reports_bp only provides API endpoints now, no UI page
     app.register_blueprint(reports_bp, url_prefix='/reports')
+    
+    # Add a direct route to /dashboard (without trailing slash) that redirects to /dashboard/
+    @app.route('/dashboard')
+    def dashboard_redirect():
+        from flask import redirect
+        return redirect('/dashboard/')
 
     # Health check endpoint
     @app.route('/health')

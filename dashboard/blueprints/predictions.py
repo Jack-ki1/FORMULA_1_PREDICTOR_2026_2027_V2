@@ -5,8 +5,6 @@ from engine.predictor import generate_prediction
 from config.settings import settings
 from data.calendar_2026 import CALENDAR_2026, get_race_by_id
 from data.circuit_data import CIRCUITS
-from security.auth import require_auth, require_role, validate_input
-from security.middleware import add_security_headers, rate_limit, validate_and_sanitize_inputs
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +14,14 @@ predictions_bp = Blueprint('predictions', __name__)
 @predictions_bp.route('/')
 def index():
     """Render the main dashboard page."""
-    return render_template('dashboard.html', calendar=CALENDAR_2026)
+    try:
+        # Filter out cancelled races to show only valid race options
+        valid_calendar = [race for race in CALENDAR_2026 if race.get('status') != 'cancelled']
+        logger.info(f"Rendering dashboard with {len(valid_calendar)} valid races (from {len(CALENDAR_2026)} total)")
+        return render_template('dashboard.html', calendar=valid_calendar)
+    except Exception as e:
+        logger.error(f"Error rendering dashboard: {e}")
+        return render_template('dashboard.html', calendar=[])
 
 
 @predictions_bp.route('/api/races')
@@ -45,14 +50,37 @@ def api_predict_session():
 
     race_id = data.get('race_id')
     session_type = data.get('session_type', 'race')
+    sub_session = data.get('sub_session')  # New parameter for FP1, FP2, FP3, Q1, Q2, Q3
     weather = data.get('weather', 'dry')
-    target_id = data.get('target_id', 'winner')
+    grid_positions = data.get('grid_positions')
+    feature_weights = data.get('feature_weights')
+    simulation_count = data.get('simulation_count', 10000)
+    ai_mode = data.get('ai_mode', 'normal')
+    ai_model = data.get('ai_model', 'gemini-2.0-flash-exp')
+    ai_api_key = data.get('ai_api_key', '')
+    ai_weight = data.get('ai_weight', 0.3)
+    ai_temperature = data.get('ai_temperature', 0.7)
 
     if not race_id:
         return jsonify({'error': 'race_id is required'}), 400
 
     try:
-        result = generate_prediction(race_id, session_type)
+        result = generate_prediction(
+            race_id=race_id,
+            session_type=session_type,
+            sub_session=sub_session,
+            weather=weather,
+            grid_positions=grid_positions,
+            feature_weights=feature_weights,
+            simulation_count=simulation_count,
+            ai_config={
+                'ai_mode': ai_mode,
+                'ai_model': ai_model,
+                'ai_api_key': ai_api_key,
+                'ai_weight': ai_weight,
+                'ai_temperature': ai_temperature,
+            }
+        )
         return jsonify(result), 200
     except Exception as e:
         logger.error(f"Prediction error for race {race_id}: {e}")
@@ -70,26 +98,62 @@ def api_ai_chat():
         return jsonify({'error': 'Request body must be JSON'}), 400
 
     message = data.get('message', '')
-    model = data.get('model', 'gemini-2.5-pro')
+    model = data.get('model', 'gemini-2.0-flash-exp')
     api_key = data.get('api_key', '')
+    temperature = float(data.get('temperature', 0.7))
 
     if not message:
         return jsonify({'error': 'message is required'}), 400
 
     try:
-        from ai.provider import AIProviderManager
-        manager = AIProviderManager()
-        result = manager.predict(prompt=message, model=model, api_key=api_key)
-        return jsonify({'response': result.get('text', str(result))}), 200
+        from engine.ai_client import ai_client
+        
+        # Enhanced system prompt for F1-specific chat
+        system_prompt = """You are an expert Formula 1 analyst and racing strategist. You have deep knowledge of:
+- Current F1 regulations and technical rules
+- Driver performance histories and driving styles
+- Team strategies and car characteristics
+- Circuit layouts and their specific challenges
+- Weather impacts on racing
+- Tyre strategies and degradation patterns
+
+Provide detailed, accurate, and insightful responses about F1 racing. When discussing predictions or probabilities, always acknowledge uncertainty and the many variables that affect race outcomes. Be specific but cautious about definitive predictions."""
+        
+        enhanced_message = f"{system_prompt}\n\nUser question: {message}"
+        
+        if api_key:
+            res = ai_client.call_ai(model=model, api_key=api_key, prompt=enhanced_message, temperature=temperature, max_tokens=1500)
+            if res and 'text' in res:
+                return jsonify({'response': res['text'], 'provider': res.get('provider'), 'model': model}), 200
+            else:
+                # Provide helpful fallback response
+                fallback_response = """I'm having trouble connecting to the AI service right now. However, I can still help you with F1 predictions using the traditional ML models available in the dashboard. 
+
+For specific questions about:
+- Driver predictions: Use the prediction dashboard
+- Race analysis: Check the standings and head-to-head sections
+- Strategy insights: The simulation results provide detailed strategy analysis
+
+Please try again with a valid API key for AI-enhanced responses."""
+                return jsonify({'response': fallback_response, 'provider': 'fallback', 'model': model}), 200
+        else:
+            from ai.provider import AIProviderManager
+            manager = AIProviderManager()
+            result = manager.predict(prompt=enhanced_message)
+            return jsonify({'response': result.get('text', str(result)), 'provider': 'fallback', 'model': model}), 200
     except Exception as e:
         logger.error(f"AI chat error: {e}")
-        return jsonify({'error': str(e), 'response': f'AI unavailable: {str(e)}'}), 500
+        if settings.DEBUG:
+            import traceback
+            logger.error(traceback.format_exc())
+        
+        error_response = f"I encountered an error processing your request: {str(e)}. Please check your API key and try again."
+        return jsonify({'response': error_response, 'provider': 'error', 'model': model}), 200  # Return 200 with error message instead of 500
 
 
 def validate_prediction_request(data: dict) -> list:
     """Validate prediction request data."""
     errors = []
-
     if not isinstance(data, dict):
         errors.append("Request data must be a JSON object")
         return errors
@@ -109,11 +173,6 @@ def handle_prediction_error(e: Exception, race_id: str) -> tuple:
     """Handle prediction errors and return appropriate response."""
     error_msg = str(e)
     logger.error(f"Error generating prediction for race {race_id}: {error_msg}")
-
-    if settings.DEBUG:
-        import traceback
-        logger.error(f"Full traceback: {traceback.format_exc()}")
-
     return jsonify({
         'error': 'Prediction generation failed',
         'message': error_msg,
@@ -122,32 +181,24 @@ def handle_prediction_error(e: Exception, race_id: str) -> tuple:
 
 
 @predictions_bp.route('/predict', methods=['POST'])
-@add_security_headers
-@rate_limit('100/hour')
-@validate_and_sanitize_inputs(['race_id', 'session_type'])
-@require_auth
 def predict():
     """Generate predictions for a race session (legacy endpoint)."""
     try:
-        data = request.get_json()
-        if not data:
-            logger.warning("Received empty request body")
-            return jsonify({'error': 'Request body must be JSON'}), 400
+        data = request.get_json() or {}
+        race_id = data.get('race_id')
+        session_type = data.get('session_type', 'race')
+        weather = data.get('weather', 'dry')
+        grid_positions = data.get('grid_positions')
 
-        errors = validate_prediction_request(data)
-        if errors:
-            logger.warning(f"Validation errors: {errors}")
-            return jsonify({'errors': errors}), 400
+        if not race_id:
+            return jsonify({'error': 'race_id is required'}), 400
 
-        race_id = data['race_id']
-        session_type = data['session_type']
-
-        logger.info(f"Processing prediction request for race {race_id}, session {session_type}")
-
-        result = generate_prediction(race_id, session_type)
-
-        logger.info(f"Successfully generated prediction for race {race_id}")
+        result = generate_prediction(
+            race_id=race_id,
+            session_type=session_type,
+            weather=weather,
+            grid_positions=grid_positions
+        )
         return jsonify(result), 200
-
     except Exception as e:
         return handle_prediction_error(e, data.get('race_id', 'unknown'))

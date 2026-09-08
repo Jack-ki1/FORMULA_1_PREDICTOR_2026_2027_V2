@@ -2,7 +2,7 @@
 {% block title %}Dashboard — F1 Predictor 2026{% endblock %}
 
 {% block content %}
-<div id="race-data" data-calendar='{{ calendar | tojson | safe }}'></div>
+<div id="race-data" data-calendar='{{ calendar | tojson | safe if calendar else "[]" }}'></div>
 
 <!-- AI SIDEBAR -->
 <div id="ai-sidebar" class="ai-sidebar">
@@ -49,11 +49,10 @@
           <label class="ai-detail-label">Choose from 20+ models</label>
           <select id="ai-model-select" class="ai-select">
             <optgroup label="Google Gemini">
-              <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
-              <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-              <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+              <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash (Experimental)</option>
               <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
               <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+              <option value="gemini-1.5-flash-8b">Gemini 1.5 Flash (8B)</option>
             </optgroup>
             <optgroup label="OpenAI GPT">
               <option value="gpt-4o">GPT-4o</option>
@@ -167,8 +166,13 @@
         <p class="text-xs mt-1 mb-4 uppercase tracking-wide font-medium text-sub">Choose a race below to start the prediction engine</p>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-          <select id="hero-race-select" class="f1-select"><option value="">— Select Race —</option></select>
-          <select id="hero-weather-select" class="f1-select">
+          <select id="hero-race-select" class="f1-select" style="min-width: 200px;">
+            <option value="">— Select Race —</option>
+            {% for race in calendar %}
+            <option value="{{ race.id }}">{{ race.flag }} Round {{ race.round }} · {{ race.name }}</option>
+            {% endfor %}
+          </select>
+          <select id="hero-weather-select" class="f1-select" style="min-width: 200px;">
             <option value="dry">&#9728;&#65039; Dry</option>
             <option value="mixed">&#9925;&#65039; Mixed</option>
             <option value="wet">&#127783;&#65039; Wet</option>
@@ -249,7 +253,12 @@
   <div class="card p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
     <div>
       <div class="fs-10 uppercase tracking-widest font-semibold mb-1 text-sub">Grand Prix</div>
-      <select id="cb-race-select" class="f1-select"><option value="">— Select Race —</option></select>
+      <select id="cb-race-select" class="f1-select" style="min-width: 200px;">
+        <option value="">— Select Race —</option>
+        {% for race in calendar %}
+        <option value="{{ race.id }}">{{ race.flag }} Round {{ race.round }} · {{ race.name }}</option>
+        {% endfor %}
+      </select>
     </div>
     <div>
       <div class="fs-10 uppercase tracking-widest font-semibold mb-1 text-sub">Weather</div>

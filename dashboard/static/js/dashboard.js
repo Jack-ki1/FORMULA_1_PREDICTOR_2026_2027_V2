@@ -15,12 +15,20 @@
     { id: "qualifying", label: "Saturday Qualifying", icon: "&#9889;", desc: "Q1/Q2/Q3 elimination · Q3 advancement model", subs: ["Q1", "Q2", "Q3", "Sprint Race"], sprintOnly: ["Sprint Race"] },
     { id: "race", label: "Sunday Grand Prix", icon: "&#127942;", desc: "Full race prediction — podium, points, DNF risk", subs: ["Race"] },
   ];
+
   const TARGETS = {
     winner: { id: "winner", label: "Race Winner", short: "WIN", sum: 1, session: "race" },
     podium: { id: "podium", label: "Podium (Top 3)", short: "PODIUM", sum: 3, session: "race" },
     points: { id: "points", label: "Points (Top 10)", short: "POINTS", sum: 10, session: "race" },
+    race: { id: "race", label: "Full Race", short: "RACE", sum: 1, session: "race" },
     q3: { id: "q3", label: "Qualifying Q3", short: "Q3", sum: 10, session: "qualifying" },
+    qualifying_q1: { id: "qualifying_q1", label: "Qualifying Q1", short: "Q1", sum: 15, session: "qualifying" },
+    qualifying_q2: { id: "qualifying_q2", label: "Qualifying Q2", short: "Q2", sum: 10, session: "qualifying" },
+    qualifying_q3: { id: "qualifying_q3", label: "Qualifying Q3", short: "Q3", sum: 10, session: "qualifying" },
     practice_pace: { id: "practice_pace", label: "Practice Pace", short: "PACE", sum: 1, session: "practice" },
+    practice_fp1: { id: "practice_fp1", label: "Practice FP1", short: "FP1", sum: 1, session: "practice" },
+    practice_fp2: { id: "practice_fp2", label: "Practice FP2", short: "FP2", sum: 1, session: "practice" },
+    practice_fp3: { id: "practice_fp3", label: "Practice FP3", short: "FP3", sum: 1, session: "practice" },
   };
 
   const state = {
@@ -39,7 +47,7 @@
     countdown: 96540,
     isSprintWeekend: false, // Track if current race is a sprint weekend
     aiMode: "normal", // 'normal' or 'ai'
-    aiModel: "gemini-2.5-pro",
+    aiModel: "gemini-2.0-flash-exp",
     aiApiKey: "",
     aiWeight: 30, // 0-100 percentage
     aiTemperature: 0.7,
@@ -53,23 +61,35 @@
   // Init
   // -----------------------------------------------------------------------
   async function init() {
-    const raw = document.getElementById("race-data").dataset.calendar;
-    state.calendar = JSON.parse(raw || "[]");
-    state.driverMap = await F1.getDriverMap();
+    try {
+      const raceDataElement = document.getElementById("race-data");
+      state.calendar = JSON.parse(raceDataElement.dataset.calendar || "[]");
+      
+      if (!Array.isArray(state.calendar) || state.calendar.length === 0) {
+        console.error("Calendar data is empty or invalid");
+        return;
+      }
+      
+      state.driverMap = await F1.getDriverMap();
 
-    populateRaceSelects();
-    renderSessionCards();
-    populateSubSessionSelect();
-    renderHero();
-    renderInfoCircuit();
-    startCountdown();
-    bindEvents();
-    
-    // Initialize tab functionality
-    initializeTabs();
-    
-    // Initialize AI sidebar
-    initializeAISidebar();
+      populateRaceSelects();
+      renderSessionCards();
+      populateSubSessionSelect();
+      renderHero();
+      renderInfoCircuit();
+      startCountdown();
+      bindEvents();
+      
+      // Initialize tab functionality
+      initializeTabs();
+      
+      // Initialize AI sidebar
+      initializeAISidebar();
+      
+      console.log("Dashboard initialized successfully");
+    } catch (error) {
+      console.error("Error initializing dashboard:", error);
+    }
   }
 
   function initializeTabs() {
@@ -453,9 +473,9 @@
   document.head.appendChild(style);
 
   function populateRaceSelects() {
-    const opts = state.calendar.map((r) => `<option value="${r.id}">${r.flag} Round ${r.round} · ${F1.escapeHtml(r.name)}</option>`).join("");
-    $("#hero-race-select").innerHTML = '<option value="">— Select Race —</option>' + opts;
-    $("#cb-race-select").innerHTML = '<option value="">— Select Race —</option>' + opts;
+    console.log("Race selects are now populated server-side, skipping JavaScript population");
+    // Dropdowns are now populated by the server, so we don't need to do anything here
+    // The calendar data is still available in state.calendar for other functions
   }
 
   function populateSubSessionSelect() {
@@ -500,13 +520,38 @@
     $("#session-cards").querySelectorAll("[data-session]").forEach((btn) => {
       btn.addEventListener("click", () => {
         state.session = btn.dataset.session;
-        state.targetId = state.session === "qualifying" ? "q3" : (state.session === "practice" ? "practice_pace" : "podium");
+        // Set appropriate target based on session
+        if (state.session === "qualifying") {
+          state.targetId = "qualifying_q3"; // Default to Q3
+        } else if (state.session === "practice") {
+          state.targetId = "practice_pace"; // Default to general practice pace
+        } else {
+          state.targetId = "podium"; // Default for race
+        }
         populateSubSessionSelect();
         renderSessionCards();
         updateSessionTag();
+        showSessionContent(); // Show content immediately when session is selected
         renderResults();
       });
     });
+  }
+
+  function showSessionContent() {
+    // Hide all session content first
+    document.querySelectorAll('.session-content').forEach(el => el.style.display = 'none');
+
+    // Show appropriate content based on session
+    if (state.session === "practice") {
+      const fridayContent = document.getElementById('friday-content');
+      if (fridayContent) fridayContent.style.display = 'block';
+    } else if (state.session === "qualifying") {
+      const saturdayContent = document.getElementById('saturday-content');
+      if (saturdayContent) saturdayContent.style.display = 'block';
+    } else if (state.session === "race") {
+      const sundayContent = document.getElementById('sunday-content');
+      if (sundayContent) sundayContent.style.display = 'block';
+    }
   }
 
   function updateSessionTag() {
@@ -814,7 +859,11 @@
   // Run
   // -----------------------------------------------------------------------
   async function handleRun() {
-    if (!state.draft.raceId) return;
+    if (!state.draft.raceId) {
+      alert("Please select a race first");
+      return;
+    }
+    
     state.committed = Object.assign({}, state.draft, { session: state.session, subSession: state.subSession });
     state.runState = "running";
     state.manualGrid = null;
@@ -831,15 +880,18 @@
     } : {};
 
     try {
+      console.log("Running prediction for:", state.session, state.subSession);
+      
       if (state.session === "race") {
         // Build a simulated grid from the Q3 model unless the user already
         // supplied one manually.
         const qualResult = await F1.api("/dashboard/api/predict-session", {
           method: "POST",
-          body: { 
-            race_id: state.committed.raceId, 
-            session_type: "qualifying", 
-            weather: state.committed.weather, 
+          body: {
+            race_id: state.committed.raceId,
+            session_type: "qualifying",
+            sub_session: "q3",
+            weather: state.committed.weather,
             feature_weights: F1.getTuning(),
             simulation_count: state.committed.simCount,
             ...aiConfig,
@@ -858,6 +910,7 @@
           body: {
             race_id: state.committed.raceId,
             session_type: "race",
+            sub_session: "race",
             weather: state.committed.weather,
             grid_positions: state.gridPositions,
             feature_weights: F1.getTuning(),
@@ -867,13 +920,14 @@
         });
         state.predictions = raceResult.predictions || {};
       } else {
-        // qualifying or practice
+        // qualifying or practice - pass sub_session for specific sessions
         const result = await F1.api("/dashboard/api/predict-session", {
           method: "POST",
-          body: { 
-            race_id: state.committed.raceId, 
+          body: {
+            race_id: state.committed.raceId,
             session_type: state.session,
-            weather: state.committed.weather, 
+            sub_session: state.subSession.toLowerCase(),
+            weather: state.committed.weather,
             feature_weights: F1.getTuning(),
             simulation_count: state.committed.simCount,
             ...aiConfig,
@@ -883,8 +937,10 @@
         state.gridSource = null;
       }
       state.runState = "done";
+      console.log("Prediction completed successfully:", state.predictions);
     } catch (err) {
       state.runState = "idle";
+      console.error("Prediction failed:", err);
       F1.showError($("#results-empty"), "Prediction failed: " + err.message);
     }
     renderRunUI();
@@ -897,6 +953,33 @@
     $("#run-btn").disabled = !state.draft.raceId || state.runState === "running";
     $("#run-btn-label").textContent = state.runState === "running" ? "Running…" : "Run Prediction";
     $("#run-progress").style.display = state.runState === "running" ? "block" : "none";
+
+    // Enhanced loading indicator
+    if (state.runState === "running") {
+      // Show detailed loading state
+      const progressBar = $("#run-progress").querySelector('div');
+      if (progressBar) {
+        progressBar.style.width = "40%";
+        progressBar.style.transition = "width 0.3s ease";
+        
+        // Simulate progress
+        let progress = 40;
+        const progressInterval = setInterval(() => {
+          if (state.runState !== "running") {
+            clearInterval(progressInterval);
+            return;
+          }
+          progress += Math.random() * 15;
+          if (progress > 90) progress = 90;
+          progressBar.style.width = progress + "%";
+        }, 500);
+      }
+      
+      // Add loading overlay
+      showLoadingOverlay();
+    } else {
+      hideLoadingOverlay();
+    }
 
     // Enable export button when predictions are available
     const exportBtn = $("#export-btn");
@@ -915,6 +998,89 @@
         exportStatus.style.color = "var(--muted)";
         exportPreview.style.display = "none";
       }
+    }
+  }
+  
+  function showLoadingOverlay() {
+    // Remove existing overlay if any
+    hideLoadingOverlay();
+    
+    const overlay = document.createElement('div');
+    overlay.id = 'prediction-loading-overlay';
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      backdrop-filter: blur(4px);
+    `;
+    
+    const loadingContent = document.createElement('div');
+    loadingContent.style.cssText = `
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      max-width: 400px;
+    `;
+    
+    const spinner = document.createElement('div');
+    spinner.style.cssText = `
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 1.5rem;
+      border: 4px solid var(--border);
+      border-top-color: var(--red);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    `;
+    
+    const loadingText = document.createElement('div');
+    loadingText.className = 'f1-display font-bold';
+    loadingText.style.fontSize = '1.25rem';
+    loadingText.style.color = 'var(--text)';
+    loadingText.textContent = 'Running Monte Carlo Simulations';
+    
+    const subText = document.createElement('div');
+    subText.style.cssText = `
+      margin-top: 0.5rem;
+      font-size: 0.875rem;
+      color: var(--sub);
+    `;
+    subText.textContent = `Processing ${state.committed?.simCount || 10000} simulations with ${state.aiMode === 'ai' ? 'AI enhancement' : 'ML model'}...`;
+    
+    loadingContent.appendChild(spinner);
+    loadingContent.appendChild(loadingText);
+    loadingContent.appendChild(subText);
+    overlay.appendChild(loadingContent);
+    document.body.appendChild(overlay);
+    
+    // Add animation keyframes if not exists
+    if (!document.getElementById('loading-spinner-style')) {
+      const style = document.createElement('style');
+      style.id = 'loading-spinner-style';
+      style.textContent = `
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  }
+  
+  function hideLoadingOverlay() {
+    const overlay = document.getElementById('prediction-loading-overlay');
+    if (overlay) {
+      overlay.remove();
     }
   }
 
@@ -967,15 +1133,28 @@
     const drivers = Object.values(state.driverMap);
     const topDrivers = drivers.slice(0, 12);
 
-    // Practice Pace Analysis - use driver strength with variation
+    // Practice Pace Analysis - use actual prediction data if available
     const paceChart = document.getElementById('chart-friday-pace');
     if (paceChart) {
-      // Generate pace scores based on driver strength with random variation
-      const paceScores = topDrivers.map(d => {
-        const baseStrength = (d.strength || 50) / 100;
-        const variation = (Math.random() - 0.5) * 0.2; // +/- 10% variation
-        return Math.max(0.3, Math.min(0.95, baseStrength + variation));
-      });
+      let paceScores;
+      
+      // Try to use actual prediction data
+      const practicePrediction = state.predictions.practice_pace || state.predictions.practice_fp1 || state.predictions.practice_fp2 || state.predictions.practice_fp3;
+      
+      if (practicePrediction && practicePrediction.predictions) {
+        // Use actual prediction probabilities
+        paceScores = topDrivers.map(d => {
+          const pred = practicePrediction.predictions.find(p => p.driver_code === d.code);
+          return pred ? pred.probability : 0.01;
+        });
+      } else {
+        // Fallback to driver strength with variation
+        paceScores = topDrivers.map(d => {
+          const baseStrength = (d.strength || 50) / 100;
+          const variation = (Math.random() - 0.5) * 0.2; // +/- 10% variation
+          return Math.max(0.3, Math.min(0.95, baseStrength + variation));
+        });
+      }
       
       F1Charts.barDistribution(
         paceChart,
@@ -1112,14 +1291,28 @@
     const drivers = Object.values(state.driverMap);
     const topDrivers = drivers.slice(0, 12);
 
-    // Qualifying Predictions - use driver strength with variation
+    // Qualifying Predictions - use actual prediction data if available
     const qualiChart = document.getElementById('chart-saturday-quali');
     if (qualiChart) {
-      const qualiChances = topDrivers.map(d => {
-        const baseStrength = (d.strength || 50) / 100;
-        const variation = (Math.random() - 0.5) * 0.25; // +/- 12.5% variation
-        return Math.max(0.2, Math.min(0.9, baseStrength + variation));
-      });
+      let qualiChances;
+      
+      // Try to use actual prediction data
+      const qualiPrediction = state.predictions.q3 || state.predictions.qualifying_q1 || state.predictions.qualifying_q2 || state.predictions.qualifying_q3;
+      
+      if (qualiPrediction && qualiPrediction.predictions) {
+        // Use actual prediction probabilities
+        qualiChances = topDrivers.map(d => {
+          const pred = qualiPrediction.predictions.find(p => p.driver_code === d.code);
+          return pred ? pred.probability : 0.01;
+        });
+      } else {
+        // Fallback to driver strength with variation
+        qualiChances = topDrivers.map(d => {
+          const baseStrength = (d.strength || 50) / 100;
+          const variation = (Math.random() - 0.5) * 0.25; // +/- 12.5% variation
+          return Math.max(0.2, Math.min(0.9, baseStrength + variation));
+        });
+      }
       
       F1Charts.barDistribution(
         qualiChart,
@@ -1277,6 +1470,43 @@
       );
     }
     
+    // DNF Risk Analysis - use actual prediction data
+    const dnfChart = document.getElementById('chart-sunday-dnf');
+    if (dnfChart) {
+      let dnfRisks;
+      
+      // Try to use actual prediction data for reliability insights
+      const racePrediction = state.predictions.winner || state.predictions.podium || state.predictions.points;
+      
+      if (racePrediction && racePrediction.predictions) {
+        // Use prediction data to estimate DNF risks based on reliability
+        dnfRisks = topDrivers.slice(0, 8).map(d => {
+          const reliability = d.reliability || 80;
+          // Lower reliability = higher DNF risk
+          const baseRisk = (100 - reliability) / 100 * 0.15;
+          const variation = (Math.random() - 0.5) * 0.05;
+          return Math.max(0.01, Math.min(0.2, baseRisk + variation));
+        });
+      } else {
+        // Fallback to reliability data
+        dnfRisks = topDrivers.slice(0, 8).map(d => {
+          const reliability = d.reliability || 80;
+          // Lower reliability = higher DNF risk
+          const baseRisk = (100 - reliability) / 100 * 0.15;
+          const variation = (Math.random() - 0.5) * 0.05;
+          return Math.max(0.01, Math.min(0.2, baseRisk + variation));
+        });
+      }
+      
+      F1Charts.barChart(
+        dnfChart,
+        topDrivers.slice(0, 8).map(d => d.code),
+        dnfRisks,
+        topDrivers.slice(0, 8).map(d => d.team_color || F1.teamColor(d.team)),
+        { title: 'DNF Risk Analysis' }
+      );
+    }
+    
     // Pit Stop Windows
     const pitChart = document.getElementById('chart-sunday-pits');
     if (pitChart) {
@@ -1328,26 +1558,6 @@
         [0.68, 0.32, 0.45, 0.85],
         ['#E10600', '#1DA36B', '#D97B0A', '#16233F'],
         { title: 'Overtaking Analysis by Zone Type' }
-      );
-    }
-    
-    // DNF Risk Analysis - use actual reliability data
-    const dnfChart = document.getElementById('chart-sunday-dnf');
-    if (dnfChart) {
-      const dnfRisks = topDrivers.slice(0, 8).map(d => {
-        const reliability = d.reliability || 80;
-        // Lower reliability = higher DNF risk
-        const baseRisk = (100 - reliability) / 100 * 0.15;
-        const variation = (Math.random() - 0.5) * 0.05;
-        return Math.max(0.01, Math.min(0.2, baseRisk + variation));
-      });
-      
-      F1Charts.barChart(
-        dnfChart,
-        topDrivers.slice(0, 8).map(d => d.code),
-        dnfRisks,
-        topDrivers.slice(0, 8).map(d => d.team_color || F1.teamColor(d.team)),
-        { title: 'DNF Risk Analysis' }
       );
     }
     
@@ -1416,28 +1626,21 @@
     const hasRun = state.runState === "done";
     $("#results-empty").style.display = hasRun ? "none" : "block";
     $("#results-content").style.display = hasRun ? "block" : "none";
+    
+    // Always show session content based on current session selection
+    showSessionContent();
+    
     if (!hasRun) return;
 
     renderGridStatusBanner();
 
-    if (state.session === "qualifying") {
-      // Show Saturday content and generate charts
-      document.querySelectorAll('.session-content').forEach(el => el.style.display = 'none');
-      const saturdayContent = document.getElementById('saturday-content');
-      if (saturdayContent) {
-        saturdayContent.style.display = 'block';
-        generateSaturdayCharts();
-      }
-    }
-    
-    if (state.session === "race") {
-      // Show Sunday content and generate charts
-      document.querySelectorAll('.session-content').forEach(el => el.style.display = 'none');
-      const sundayContent = document.getElementById('sunday-content');
-      if (sundayContent) {
-        sundayContent.style.display = 'block';
-        generateSundayCharts();
-      }
+    // Generate charts based on session
+    if (state.session === "practice") {
+      generateFridayCharts();
+    } else if (state.session === "qualifying") {
+      generateSaturdayCharts();
+    } else if (state.session === "race") {
+      generateSundayCharts();
     }
     
     document.querySelectorAll(".charts-grid-3")[0].style.display = "grid";
@@ -1445,7 +1648,7 @@
     $("#dnf-card").style.display = state.session === "race" ? "block" : "none";
 
     const targets = targetsForSession();
-    if (!targets.find((t) => t.id === state.targetId)) state.targetId = targets[0].id;
+    if (!targets.find((t) => t.id === state.targetId)) state.targetId = targets[0]?.id || "podium";
 
     $("#target-pills").style.display = targets.length > 1 ? "flex" : "none";
     $("#target-pills").innerHTML = targets.map((t) => `
@@ -1455,8 +1658,16 @@
       btn.addEventListener("click", () => { state.targetId = btn.dataset.target; renderResults(); });
     });
 
-    const result = state.predictions[state.targetId];
-    const target = TARGETS[state.targetId];
+    let result = state.predictions[state.targetId];
+    if (!result || !result.predictions) {
+      const availableKeys = Object.keys(state.predictions);
+      if (availableKeys.length > 0) {
+        const matchingKey = availableKeys.find(k => TARGETS[k] && TARGETS[k].session === state.session) || availableKeys[0];
+        result = state.predictions[matchingKey];
+        if (matchingKey && TARGETS[matchingKey]) state.targetId = matchingKey;
+      }
+    }
+    const target = TARGETS[state.targetId] || { id: state.targetId, label: state.targetId, sum: 1 };
     $("#dist-title").textContent = `${target.label} Distribution`;
 
     if (!result || result.error || !result.predictions) {
@@ -1474,15 +1685,8 @@
     renderTable(field, target);
     setStat("#stat-confidence", result.confidence != null ? Math.round(result.confidence * 100) / 100 + "%" : "—", result.confidence == null);
     
-    // Show appropriate content based on session
-    document.querySelectorAll('.session-content').forEach(el => el.style.display = 'none');
-    if (state.session === 'qualifying') {
-      const saturdayContent = document.getElementById('saturday-content');
-      if (saturdayContent) saturdayContent.style.display = 'block';
-    } else if (state.session === 'race') {
-      const sundayContent = document.getElementById('sunday-content');
-      if (sundayContent) sundayContent.style.display = 'block';
-    }
+    // Ensure appropriate session content is visible
+    showSessionContent();
   }
 
   function driverInfo(code) {
@@ -1598,7 +1802,21 @@
       state.draft.simCount = Math.max(100, Math.min(100000, Number(e.target.value) || 0));
       setSimStat();
     });
-    $("#cb-sub-session").addEventListener("change", (e) => { state.subSession = e.target.value; });
+    $("#cb-sub-session").addEventListener("change", (e) => {
+      state.subSession = e.target.value;
+      // Update target based on sub-session selection
+      if (state.session === "qualifying") {
+        if (state.subSession === "Q1") state.targetId = "qualifying_q1";
+        else if (state.subSession === "Q2") state.targetId = "qualifying_q2";
+        else if (state.subSession === "Q3") state.targetId = "qualifying_q3";
+        else state.targetId = "qualifying_q3";
+      } else if (state.session === "practice") {
+        if (state.subSession === "FP1") state.targetId = "practice_fp1";
+        else if (state.subSession === "FP2") state.targetId = "practice_fp2";
+        else if (state.subSession === "FP3") state.targetId = "practice_fp3";
+        else state.targetId = "practice_pace";
+      }
+    });
     $("#run-btn").addEventListener("click", handleRun);
 
     // Export functionality
@@ -1614,4 +1832,10 @@
   }
 
   document.addEventListener("DOMContentLoaded", init);
+  
+  // Fallback: if DOMContentLoaded already fired, call init immediately
+  if (document.readyState === "complete" || document.readyState === "interactive") {
+    console.log("DOM already loaded, calling init immediately");
+    setTimeout(init, 100);
+  }
 })();

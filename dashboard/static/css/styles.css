@@ -404,8 +404,18 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
 .f1-select, .f1-input {
   width: 100%; background: var(--surface-alt); color: var(--text);
   border: 1px solid var(--border); border-radius: .5rem; padding: .55rem .7rem; font-size: 14px;
+  min-height: 40px;
+  cursor: pointer;
 }
-.f1-select:disabled { opacity: .55; }
+.f1-select:disabled { opacity: .55; cursor: not-allowed; }
+.f1-select option {
+  background: var(--surface-alt);
+  color: var(--text);
+  padding: 8px;
+}
+.f1-select:hover {
+  border-color: var(--red);
+}
 
 /* ---- Sliders (Analytics & Settings) ---- */
 .f1-range { width: 100%; accent-color: var(--red); }
@@ -907,5 +917,27 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
 
 .ai-mode-tab.active {
   background: var(--red);
+  color: white;
+}
+
+/* Loading Overlay Styles */
+#prediction-loading-overlay {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Progress Bar Animation */
+#run-progress div {
+  transition: width 0.3s ease;
+}
   color: white;
 }

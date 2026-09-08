@@ -1,12 +1,12 @@
 """
 2026 FIA Formula One World Championship calendar.
-Verified 23-round calendar as confirmed by Formula1.com, ESPN, Sky Sports, and Motorsport.com.
+23-round calendar (excluding Bahrain and Saudi Arabia as cancelled rounds).
 """
 from datetime import datetime
 
 # 2026 F1 Calendar
 # Status: "completed" | "upcoming" | "cancelled" (relative to current date)
-# Bahrain and Saudi Arabian Grands Prix were cancelled and later Bahrain was reinstated at Sepang, Malaysia
+# 23 valid rounds (Bahrain and Saudi Arabia cancelled)
 CALENDAR_2026 = [
     {
         'id': 'au',
@@ -65,46 +65,7 @@ CALENDAR_2026 = [
         'status': 'completed',
         'sprint': False,
     },
-    {
-        'id': 'bh',
-        'round': None,
-        'name': 'Bahrain Grand Prix',
-        'circuit': 'Bahrain International Circuit',
-        'location': 'Sakhir',
-        'country': 'Bahrain',
-        'flag': '🇧🇭',
-        'date': 'Apr 10-12',
-        'laps': 57,
-        'length_km': 5.412,
-        'drs_zones': 3,
-        'overtaking': 'High',
-        'base_rain': 1,
-        'base_sc': 25,
-        'base_temp': 34,
-        'status': 'cancelled',
-        'sprint': False,
-        'note': 'Cancelled — regional conflict in the Middle East.',
-    },
-    {
-        'id': 'sa',
-        'round': None,
-        'name': 'Saudi Arabian Grand Prix',
-        'circuit': 'Jeddah Corniche Circuit',
-        'location': 'Jeddah',
-        'country': 'Saudi Arabia',
-        'flag': '🇸🇦',
-        'date': 'Apr 17-19',
-        'laps': 50,
-        'length_km': 6.174,
-        'drs_zones': 3,
-        'overtaking': 'Medium',
-        'base_rain': 1,
-        'base_sc': 45,
-        'base_temp': 30,
-        'status': 'cancelled',
-        'sprint': False,
-        'note': 'Cancelled — regional conflict in the Middle East.',
-    },
+
     {
         'id': 'mi',
         'round': 4,

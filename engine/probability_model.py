@@ -275,6 +275,9 @@ class ProbabilityModel:
         
         return confidence
     
+    # Alias for convenience
+    calculate_confidence = get_confidence_score
+    
     def generate_prediction_summary(
         self,
         probabilities: Dict[str, float],

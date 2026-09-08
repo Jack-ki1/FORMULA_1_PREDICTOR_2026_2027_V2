@@ -2,8 +2,9 @@
 Share card generator - creates shareable text/image summary cards.
 Generates social media-friendly summary cards.
 """
-from typing import Dict, Any
+from typing import Dict, Any, List
 import json
+from reports.csv_excel_report import extract_predictions_list
 
 
 class ShareCardGenerator:
@@ -19,7 +20,7 @@ class ShareCardGenerator:
         Returns:
             Share card data with text and HTML representations
         """
-        predictions = data.get('predictions', [])
+        predictions = extract_predictions_list(data)
         if not predictions:
             return {
                 'error': 'No predictions available',
@@ -54,138 +55,31 @@ class ShareCardGenerator:
     def _generate_text_summary(self, data: Dict[str, Any], top_driver: str, top_probability: float) -> str:
         """Generate text summary for sharing."""
         race_id = data.get('race_id', 'Unknown')
-        target = data.get('target_id', 'Unknown')
-        confidence = data.get('confidence', 0.0)
+        target = data.get('target_id', 'winner')
         
-        summary = f"🏎️ F1 Predictor 2026\n"
-        summary += f"📍 {race_id}\n"
-        summary += f"🎯 {target.upper()} Prediction\n"
-        summary += f"🏆 Top Pick: {top_driver} ({top_probability * 100:.1f}%)\n"
-        summary += f"📊 Confidence: {confidence * 100:.1f}%\n"
-        summary += f"#F1 #F1Predictor2026"
-        
+        summary = f"🏎️ F1 Predictor 2026 Prediction\n"
+        summary += f"🏁 Grand Prix: {race_id.title()}\n"
+        summary += f"🥇 Top Pick: {top_driver} ({top_probability * 100:.1f}% for {target.upper()})\n"
+        summary += f"⚡ Powered by ML & Monte Carlo Simulation"
         return summary
     
     def _generate_html_card(self, data: Dict[str, Any], top_driver: str, top_probability: float) -> str:
-        """Generate HTML card for sharing."""
+        """Generate HTML card for rendering."""
         race_id = data.get('race_id', 'Unknown')
-        target = data.get('target_id', 'Unknown')
-        confidence = data.get('confidence', 0.0)
-        
-        html = f"""
-        <div class="share-card" style="
-            font-family: Arial, sans-serif;
-            max-width: 400px;
-            border: 2px solid #E10600;
-            border-radius: 12px;
-            padding: 20px;
-            background: linear-gradient(135deg, #F4F5F7 0%, #FFFFFF 100%);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        ">
-            <div style="text-align: center; margin-bottom: 15px;">
-                <div style="
-                    font-size: 32px;
-                    font-weight: 900;
-                    color: #E10600;
-                    margin-bottom: 5px;
-                ">F1</div>
-                <div style="font-size: 14px; font-weight: 700; color: #15151E;">
-                    Predictor 2026
-                </div>
-            </div>
-            
-            <div style="
-                background-color: #E10600;
-                color: white;
-                padding: 10px;
-                border-radius: 6px;
-                text-align: center;
-                margin-bottom: 15px;
-                font-weight: 600;
-            ">
-                {target.upper()} Prediction
-            </div>
-            
-            <div style="margin-bottom: 15px;">
-                <div style="font-size: 12px; color: #6B7280; margin-bottom: 5px;">
-                    📍 Race
-                </div>
-                <div style="font-size: 16px; font-weight: 700; color: #15151E;">
-                    {race_id}
-                </div>
-            </div>
-            
-            <div style="
-                background-color: #F9FAFB;
-                border: 2px solid #E10600;
-                border-radius: 8px;
-                padding: 15px;
-                text-align: center;
-                margin-bottom: 15px;
-            ">
-                <div style="font-size: 12px; color: #6B7280; margin-bottom: 5px;">
-                    🏆 Top Pick
-                </div>
-                <div style="font-size: 24px; font-weight: 900; color: #E10600;">
-                    {top_driver}
-                </div>
-                <div style="font-size: 20px; font-weight: 700; color: #15151E; margin-top: 5px;">
-                    {top_probability * 100:.1f}%
-                </div>
-            </div>
-            
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <div style="font-size: 12px; color: #6B7280;">📊 Confidence</div>
-                    <div style="font-size: 16px; font-weight: 700; color: #15151E;">
-                        {confidence * 100:.1f}%
-                    </div>
-                </div>
-                <div style="font-size: 12px; color: #6B7280;">
-                    #F1 #F1Predictor2026
-                </div>
-            </div>
+        target = data.get('target_id', 'winner')
+        return f"""
+        <div class="f1-share-card" style="background:#16233F;color:#FFF;padding:24px;border-radius:12px;border-top:4px solid #E10600;max-width:400px;">
+            <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#9AA0AC;">F1 PREDICTOR 2026</div>
+            <div style="font-size:20px;font-weight:bold;margin:8px 0;">{race_id.title()} GP</div>
+            <div style="font-size:28px;font-weight:900;color:#E10600;">{top_driver}</div>
+            <div style="font-size:14px;color:#D8DAE0;">{top_probability * 100:.1f}% Projected {target.title()} Chance</div>
         </div>
         """
-        
-        return html
     
     def _generate_markdown_card(self, data: Dict[str, Any], top_driver: str, top_probability: float) -> str:
-        """Generate markdown card for sharing."""
+        """Generate Markdown card."""
         race_id = data.get('race_id', 'Unknown')
-        target = data.get('target_id', 'Unknown')
-        confidence = data.get('confidence', 0.0)
-        
-        markdown = f"""
-## 🏎️ F1 Predictor 2026
-
-### 📍 {race_id}
-### 🎯 {target.upper()} Prediction
-
-**🏆 Top Pick:** **{top_driver}** (`{top_probability * 100:.1f}%`)
-
-**📊 Confidence:** `{confidence * 100:.1f}%`
-
----
-*Generated by F1 Predictor 2026*
-#F1 #F1Predictor2026
-        """
-        
-        return markdown.strip()
-    
-    def generate_multiple_cards(self, predictions_data: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
-        """
-        Generate share cards for multiple predictions.
-        
-        Args:
-            predictions_data: Dictionary of target IDs to prediction data
-        
-        Returns:
-            Dictionary of share cards by target
-        """
-        cards = {}
-        
-        for target_id, data in predictions_data.items():
-            cards[target_id] = self.generate_card(data)
-        
-        return cards
+        target = data.get('target_id', 'winner')
+        return f"""### 🏎️ F1 2026: {race_id.title()} Prediction
+**Top Projected Driver:** `{top_driver}` ({top_probability * 100:.1f}% for {target})
+*Generated with F1 Predictor 2026*"""
