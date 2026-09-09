@@ -938,6 +938,280 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
 /* Progress Bar Animation */
 #run-progress div {
   transition: width 0.3s ease;
-}
   color: white;
+}
+/* F1 Grid Editor Styles */
+.f1-grid-container {
+    margin: 24px 0;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.f1-grid-instructions {
+    text-align: center;
+    margin-bottom: 16px;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.f1-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.f1-grid-row {
+    display: contents;
+}
+
+.f1-grid-slot {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: move;
+    transition: all 0.2s ease;
+    position: relative;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.f1-grid-slot:hover {
+    background: var(--hover);
+    transform: translateY(-2px);
+}
+
+.f1-grid-slot.dragging {
+    opacity: 0.8;
+    background: var(--primary);
+    color: white;
+}
+
+.f1-grid-slot.drag-over {
+    background: var(--primary-light);
+    border-color: var(--primary);
+}
+
+.f1-grid-position {
+    font-weight: bold;
+    font-size: 1.2rem;
+    color: var(--text);
+    margin-bottom: 4px;
+}
+
+.driver-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.driver-image {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--skeleton);
+    margin-bottom: 6px;
+    overflow: hidden;
+}
+
+.driver-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.driver-info {
+    text-align: center;
+}
+
+.driver-code {
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.driver-team {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+.win-percent-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: var(--amber);
+    color: white;
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+.delta-indicator {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    display: none;
+}
+
+.f1-grid-slot.has-delta .delta-indicator {
+    display: block;
+}
+
+/* Penalty Buttons */
+.penalty-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 16px;
+}
+
+.penalty-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.penalty-btn:hover {
+    background: var(--hover);
+}
+
+.penalty-btn--critical {
+    background: var(--red);
+    color: white;
+    border-color: var(--red);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .f1-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .f1-grid-row {
+        display: flex;
+    }
+
+    .f1-grid-slot {
+        width: calc(50% - 6px);
+    }
+}
+
+/* Manual Grid Editor Styles */
+.manual-grid-container {
+    margin: 24px 0;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.manual-grid-instructions {
+    text-align: center;
+    margin-bottom: 16px;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.manual-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.manual-grid-slot {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.position-label {
+    font-weight: bold;
+    text-align: center;
+    color: var(--text);
+}
+
+.driver-select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    /* FIX: Changed from 'background' to 'background-color' */
+    background-color: var(--surface);
+    color: var(--text);
+    font-size: 1rem;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url('data:image/svg+xml;utf8,<svg fill="%23666" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>');
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 16px;
+}
+
+.driver-select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px var(--primary-light);
+}
+
+.manual-grid-controls {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 16px;
+}
+
+.btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: white;
+    border: none;
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+}
+
+.btn-secondary {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+    background: var(--hover);
+}
+
+.btn-outline {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+
+.btn-outline:hover {
+    background: var(--hover);
 }

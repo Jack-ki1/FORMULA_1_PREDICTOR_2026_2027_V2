@@ -1,11 +1,12 @@
-"""
+'''
 AI/LLM Client for prediction enhancement.
 Supports Gemini, OpenAI, Anthropic, Groq, Mistral, Cohere, and OpenAI-compatible endpoints.
-"""
+'''
 import logging
 import requests
 import json
 from typing import Dict, List, Any, Optional
+from ai.provider import AIProviderManager
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +15,7 @@ class AIClient:
     """Client for AI/LLM providers to enhance predictions and chat."""
     
     def __init__(self):
-        pass
+        self.provider_manager = AIProviderManager()
     
     def _determine_provider(self, model: str) -> str:
         """Determine provider from model name."""
@@ -202,6 +203,38 @@ class AIClient:
             logger.warning(f"AI API request failed for {model}: {e}")
 
         return None
+    
+    def call_multi_agent(
+        self,
+        query: str,
+        context: Dict[str, Any] = None
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Call the Multi-Agent Pit Wall system to analyze a 'What-If' scenario.
+        
+        Args:
+            query: Natural language scenario (e.g., "What happens if a Safety Car deploys on Lap 24?")
+            context: Additional context like race_id, session_type, current_grid, etc.
+        
+        Returns:
+            Dictionary with analysis results and broadcast-style narrative.
+        """
+        try:
+            result = self.provider_manager.call_multi_agent(query, context)
+            
+            if result.get("success"):
+                return {
+                    "result": result["result"],
+                    "provider": result["provider"],
+                    "timestamp": result.get("timestamp", "")
+                }
+            else:
+                logger.error(f"Multi-Agent Pit Wall failed: {result.get('error', 'Unknown error')}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Multi-Agent Pit Wall call failed: {e}")
+            return None
     
     def get_prediction_insights(
         self,

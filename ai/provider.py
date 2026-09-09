@@ -2,12 +2,16 @@ import logging
 from typing import Dict, Any, Optional
 import requests
 from config.settings import settings
+from ai.local.ollama_provider import OllamaClient
+from ai.agents.chief_strategist import ChiefStrategistAgent
 
 logger = logging.getLogger(__name__)
+
 
 class AIProviderError(Exception):
     """Base exception for AI provider errors."""
     pass
+
 
 class HuggingFaceClient:
     """Client for Hugging Face Inference API."""
@@ -47,6 +51,7 @@ class HuggingFaceClient:
         except Exception as e:
             logger.error(f"Unexpected error with Hugging Face API: {e}")
             raise AIProviderError(f"Unexpected error: {str(e)}") from e
+
 
 class OpenAIClient:
     """Client for OpenAI API."""
@@ -97,6 +102,7 @@ class OpenAIClient:
             logger.error(f"Unexpected error with OpenAI API: {e}")
             raise AIProviderError(f"Unexpected error: {str(e)}") from e
 
+
 class AIProviderFactory:
     """Factory for creating AI provider instances."""
     
@@ -109,9 +115,12 @@ class AIProviderFactory:
             return HuggingFaceClient()
         elif provider_name == 'openai':
             return OpenAIClient()
+        elif provider_name == 'ollama':
+            return OllamaClient()
         else:
             logger.warning(f"Unknown AI provider: {provider_name}. Using fallback.")
             return None
+
 
 class AIProviderManager:
     """Manager for handling AI provider fallback strategies."""
@@ -159,4 +168,45 @@ class AIProviderManager:
            (not self.primary_provider or not isinstance(self.primary_provider, OpenAIClient)):
             fallbacks.append(OpenAIClient())
         
+        # Add Ollama if not primary
+        if settings.OLLAMA_BASE_URL and \
+           (not self.primary_provider or not isinstance(self.primary_provider, OllamaClient)):
+            fallbacks.append(OllamaClient())
+        
         return fallbacks
+    
+    def call_multi_agent(self, query: str, context: Dict[str, Any] = None) -> Dict[str, Any]:
+        """
+        Call the Multi-Agent Pit Wall system to analyze a 'What-If' scenario.
+        
+        Args:
+            query: Natural language scenario (e.g., "What happens if a Safety Car deploys on Lap 24?")
+            context: Additional context like race_id, session_type, current_grid, etc.
+        
+        Returns:
+            Dictionary with analysis results and broadcast-style narrative.
+        """
+        if context is None:
+            context = {}
+        
+        try:
+            # Initialize Chief Strategist Agent
+            strategist = ChiefStrategistAgent()
+            
+            # Analyze the scenario
+            result = strategist.analyze_scenario(query, context)
+            
+            return {
+                "success": True,
+                "result": result,
+                "provider": "multi-agent",
+                "timestamp": context.get("timestamp", "")
+            }
+            
+        except Exception as e:
+            logger.error(f"Multi-Agent Pit Wall analysis failed: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "provider": "multi-agent"
+            }

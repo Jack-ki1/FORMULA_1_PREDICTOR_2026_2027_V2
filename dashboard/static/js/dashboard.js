@@ -1790,6 +1790,16 @@
         renderHero();
         renderRealResultBanner();
         populateSubSessionSelect(); // Update sub-sessions when race changes
+        
+        // ✅ Enable/disable run button based on race selection
+        const runBtn = $("#run-btn");
+        if (state.draft.raceId) {
+          runBtn.disabled = false;
+          runBtn.innerHTML = `<span id="run-btn-label">Run Prediction</span>`;
+        } else {
+          runBtn.disabled = true;
+          runBtn.innerHTML = `<span id="run-btn-label">Select Grand Prix</span>`;
+        }
       });
     });
     ["#hero-weather-select", "#cb-weather-select"].forEach((sel) => {
