@@ -1,5 +1,6 @@
 import logging
 from flask import Blueprint, render_template, request, jsonify
+from sqlalchemy import text
 from engine.predictor import generate_prediction
 from config.settings import settings
 from security.auth import require_auth
@@ -63,7 +64,7 @@ def api_metrics():
         with db_client.get_session() as db:
             # Count recent predictions
             recent_predictions = db.execute(
-                "SELECT COUNT(*) FROM predictions WHERE created_at > datetime('now', '-24 hours')"
+                text("SELECT COUNT(*) FROM predictions WHERE created_at > datetime('now', '-24 hours')")
             ).scalar()
             
             # Get accuracy metrics (placeholder - would be calculated from historical data)
@@ -97,7 +98,7 @@ def api_historical():
         with db_client.get_session() as db:
             # Get predictions from last race
             last_race_predictions = db.execute(
-                "SELECT * FROM predictions WHERE session_type = 'race' ORDER BY created_at DESC LIMIT 10"
+                text("SELECT * FROM predictions WHERE session_type = 'race' ORDER BY created_at DESC LIMIT 10")
             ).fetchall()
             
             # Convert to dict format

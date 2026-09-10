@@ -172,22 +172,39 @@ For issues and questions, please open an issue on the repository or contact supp
 
 The current F1 prediction platform follows a layered architecture with three primary data sources (Jolpica, OpenF1, FastF1), a session context processing layer, and a prediction engine using both ML models and Monte Carlo simulations.
 
-### Key Technical Debt Items
+A full, verified audit of this codebase — including what's actually wired
+into the running app versus what exists as unused code — lives in
+[`AUDIT.md`](AUDIT.md). The summary below was previously inaccurate about
+several items' real status; it's corrected here.
 
-- **Missing API Integration Tests**: `test_api_integration.py` does not exist (now addressed in Phase 9)
-- **Probability Validation Gaps**: No strict enforcement that winner probabilities sum to exactly 1.0 (now addressed in Phase 6)
-- **Hardcoded Configuration**: Monte Carlo simulation count (1000) is hardcoded rather than configurable (now addressed in Phase 2)
-- **Logging Deficiencies**: Production code uses `print()` statements instead of structured logging (now addressed in Phase 5)
-- **Data Pipeline Limitations**: No centralized data normalization layer (now addressed in Phase 3)
-- **Database Configuration**: Hardcoded database configuration (now addressed in Phase 4)
-- **AI Provider Integration**: No integration with external AI providers (now addressed in Phase 7)
-- **Dashboard Enhancements**: Basic dashboard without real-time visualization (now addressed in Phase 8)
-- **Comprehensive Testing**: Missing integration and validation tests (now addressed in Phase 9)
-- **Security Enhancements**: No authentication, authorization, or input validation (now addressed in Phase 10)
-- **Monitoring and Observability**: No metrics collection or alerting (now addressed in Phase 11)
-- **Performance Optimization**: No caching or database optimization (now addressed in Phase 12)
-- **API Integration Tests**: Basic tests only (now enhanced in Phase 13)
-- **Final Documentation and Handoff**: Incomplete documentation for deployment (now addressed in Phase 14)
+### Key Technical Debt Items (verified status)
+
+- **Missing API Integration Tests**: `test_api_integration.py` still does not exist. Not addressed.
+- **Probability Validation Gaps**: `engine/probability_model.py::enforce_probability_sum` normalises winner probabilities to sum to 1.0 — addressed, and covered by `tests/test_predictor.py`.
+- **Hardcoded Configuration**: Monte Carlo simulation count is configurable via the `simulation_count` parameter on `generate_prediction()` (see `engine/predictor.py`) — addressed.
+- **Logging Deficiencies**: Most library code (`engine/`, `data/`, `database/`) uses `logging`; the Flask blueprint route handlers and CLI scripts still use `print()` — partially addressed, tracked as a nit in `AUDIT.md`.
+- **Data Pipeline Limitations**: `data/pipeline.py` / `pipeline_utils.py` / `pipeline_config.py` provide a shared normalization layer — addressed.
+- **Database Configuration**: Configurable via `DATABASE_URL` in `config/settings.py` — addressed, though see `AUDIT.md` M-3 for a caveat (two separate connection-pooling implementations exist).
+- **AI Provider Integration**: `engine/ai_client.py` / `ai/provider.py` integrate Gemini, OpenAI, Anthropic, Groq, Mistral, Cohere, HuggingFace, and local Ollama — addressed.
+- **Dashboard Enhancements**: Multi-view Flask dashboard exists — addressed.
+- **Comprehensive Testing**: 12 tests exist and pass, but large parts of the codebase (most of `engine/`, all of `security/`, `data/api_client.py`, `reports/`) remain untested — partially addressed. See `AUDIT.md` T-1.
+- **Security Enhancements**: `security/auth.py` and `security/middleware.py` implement real JWT auth, security headers, and input validation — **but neither module is imported by any route the running app actually registers** (`dashboard/app.py`). The only blueprints that used them (`dashboard.py`, `health.py`) are not wired into the app, and there is no login endpoint anywhere to issue a token even if they were. **Not actually addressed in the running application** — see `AUDIT.md` B-6.
+- **Monitoring and Observability**: `monitoring/blueprint.py` implements a real Prometheus `/metrics` endpoint, but it is never registered by `dashboard/app.py` or `main.py`. **Not actually addressed in the running application** — see `AUDIT.md` m-3.
+- **Performance Optimization**: Response caching (`cache/redis.py`) and DB connection pooling exist — addressed.
+- **API Integration Tests**: Same as above — still just the 3 existing test files, no dedicated API integration suite.
+- **Final Documentation and Handoff**: This section itself was the main inaccuracy found; corrected as part of the repo audit (see `AUDIT.md`).
+
+> **Note on the sections below:** these "Phase N Implementation Summary"
+> write-ups predate this audit and describe intended/aspirational state
+> rather than verified fact — e.g. Phase 13 below claims "Full Coverage:
+> All Jolpica, OpenF1, and FastF1 endpoints tested," but `tests/` contains
+> only `test_ai_client.py`, `test_dashboard_blueprints.py`, and
+> `test_predictor.py` — none of which test `jolpica_client.py`,
+> `openf1_client.py`, or `fastf1_integration.py` at all. Similarly, Phase
+> 11's monitoring claim is real code (`monitoring/blueprint.py`) that is
+> never registered by the running app (see `AUDIT.md` m-3). Treat the
+> sections below as a roadmap/wishlist, not a changelog, until each claim
+> has been re-verified.
 
 ### Phase 11 Implementation Summary
 

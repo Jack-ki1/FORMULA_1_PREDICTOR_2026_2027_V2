@@ -1,6 +1,6 @@
 import logging
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from config.settings import settings
 from migrations._001_initial_schema import upgrade, downgrade
 
@@ -24,7 +24,7 @@ def verify_database_connection():
         from config.settings import settings
         engine = create_engine(settings.DATABASE_URL)
         with engine.connect() as conn:
-            result = conn.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table'")
+            result = conn.execute(text("SELECT COUNT(*) FROM sqlite_master WHERE type='table'"))
             table_count = result.scalar()
             logger.info(f"Database connection verified. Found {table_count} tables.")
             return True

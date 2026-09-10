@@ -6,7 +6,7 @@ This is a comprehensive Formula 1 race prediction system for the 2026 season, fe
 
 ## Build Status
 
-✅ **Project Structure**: Complete folder structure as per BUILD_PLAN.md
+✅ **Project Structure**: Complete folder structure (see tree below)
 ✅ **Configuration**: All config modules (settings, API settings, feature weights, constants, team/driver lineup)
 ✅ **Data Foundation**: Calendar, driver data, team data, circuit data, season data
 ✅ **API Clients**: Generic client, Jolpica, OpenF1, FastF1, Hugging Face integration
@@ -150,10 +150,9 @@ f1_predictor_2026/
 │   └── generate_results_template.py
 │
 └── tests/
-    ├── test_probability_model.py
-    ├── test_grid_autofill.py
-    ├── test_fantasy_scoring.py
-    └── test_api_clients.py
+    ├── test_ai_client.py
+    ├── test_dashboard_blueprints.py
+    └── test_predictor.py
 ```
 
 ## Key Features
@@ -183,7 +182,7 @@ f1_predictor_2026/
 pytest tests/
 
 # Run specific test file
-pytest tests/test_probability_model.py
+pytest tests/test_predictor.py
 
 # Run with coverage
 pytest tests/ --cov=engine --cov-report=html
@@ -234,4 +233,4 @@ See `NEXT_SEASON_MIGRATION_GUIDE.md` for detailed instructions on migrating to t
 
 ## Support
 
-For issues or questions, please refer to the build plan (BUILD_PLAN.md) or contact support.
+For issues or questions, please refer to `AUDIT.md` for known issues and their status, or the `docs/` directory for architecture notes.

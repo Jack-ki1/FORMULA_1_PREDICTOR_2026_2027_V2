@@ -1,5 +1,5 @@
 import logging
-import datetime
+from datetime import datetime, timezone
 from flask import Blueprint, jsonify
 from config.settings import settings
 from database.client import DatabaseClient
@@ -50,7 +50,7 @@ def health_check():
             'status': 'healthy',
             'version': settings.VERSION,
             'environment': settings.ENVIRONMENT,
-            'timestamp': str(datetime.utcnow())
+            'timestamp': str(datetime.now(timezone.utc))
         }
         
         # Database health check

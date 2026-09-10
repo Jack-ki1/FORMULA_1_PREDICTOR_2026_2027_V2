@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     
     # Season Configuration
     SEASON_YEAR: int = 2026
-    DEBUG: bool = True
+    DEBUG: bool = False
     
     # Application Configuration
     VERSION: str = '1.0.0'

@@ -55,7 +55,7 @@ class APIClient:
                 cached_data = json.load(f)
             
             # Check if cache is expired
-            cached_time = datetime.fromisoformat(cached_data.get('timestamp', ''))
+            cached_time = dt.datetime.fromisoformat(cached_data.get('timestamp', ''))
             ttl = cached_data.get('ttl', api_settings.CACHE_TTL_DEFAULT)
             
             if dt.datetime.now() - cached_time < timedelta(seconds=ttl):
@@ -64,7 +64,7 @@ class APIClient:
                 # Remove expired cache
                 os.remove(cache_path)
                 return None
-        except (json.JSONDecodeError, KeyError, ValueError):
+        except (json.JSONDecodeError, KeyError, ValueError, TypeError, OSError):
             return None
     
     def _cache_response(self, cache_key: str, data: Any, ttl: int = None):
