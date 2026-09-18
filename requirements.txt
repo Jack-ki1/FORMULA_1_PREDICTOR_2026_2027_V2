@@ -34,6 +34,12 @@ lightgbm>=4.0.0
 # OpenAI-compatible endpoint via the official openai SDK) ---
 openai>=1.0.0
 
+# --- Hugging Face Spaces / Datasets ---
+huggingface-hub>=0.25.0
+datasets>=2.19.0
+# --- Production WSGI for HF Spaces (Docker SDK expects gunicorn on 7860) ---
+gunicorn>=22.0.0
+
 # --- Caching / monitoring ---
 redis>=5.0.0
 prometheus_client>=0.19.0

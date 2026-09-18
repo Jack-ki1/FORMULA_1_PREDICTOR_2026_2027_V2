@@ -22,14 +22,14 @@ class JolpicaClient(APIClient):
     
     def get_driver_standings(self, season_year: int) -> Dict[str, Any]:
         """
-        Get driver championship standings for a season.
-        
-        Returns:
-            Dictionary with 'data', 'source', and 'provenance' keys
+        Get driver championship standings for a season — live Jolpica, fallback simulated.
         """
         try:
+            # Use Ergast-compatible endpoint via settings so base+path stays correct
+            endpoint = api_settings.get_endpoint('jolpica', 'driver_standings', season=season_year)
+            # get_endpoint returns full URL; _build_url handles absolute URLs correctly
             response = self.get(
-                f'/f1/{season_year}/driverStandings.json',
+                endpoint,
                 timeout=api_settings.LONG_TIMEOUT,
                 cache_ttl=api_settings.CACHE_TTL_LONG
             )
@@ -112,14 +112,12 @@ class JolpicaClient(APIClient):
     
     def get_qualifying_result(self, season_year: int, round_number: int) -> Dict[str, Any]:
         """
-        Get qualifying results for a specific race.
-        
-        Returns:
-            Dictionary with 'data', 'source', and 'provenance' keys
+        Get qualifying results for a specific race — live Jolpica, fallback simulated.
         """
         try:
+            endpoint = api_settings.get_endpoint('jolpica', 'qualifying_result', season=season_year, round=round_number)
             response = self.get(
-                f'/f1/{season_year}/{round_number}/qualifying.json',
+                endpoint,
                 timeout=api_settings.LONG_TIMEOUT,
                 cache_ttl=api_settings.CACHE_TTL_LONG
             )

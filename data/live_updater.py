@@ -147,12 +147,11 @@ class LiveUpdater:
         if SCHEDULE_AVAILABLE:
             schedule.every(self.update_interval).seconds.do(self._run_update_cycle)
         
-        # Run initial update
-        self._run_update_cycle()
-        
-        # Start scheduler thread
+        # Start scheduler thread first — run initial cycle inside the thread so main Flask boot isn't blocked on external APIs
         self.thread = threading.Thread(target=self._scheduler_loop, daemon=True)
         self.thread.start()
+        # Kick off first refresh asynchronously
+        threading.Thread(target=self._run_update_cycle, daemon=True).start()
         
         print(f"Live updater started with {self.update_interval}s interval")
     

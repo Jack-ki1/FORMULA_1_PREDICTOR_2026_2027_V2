@@ -10,8 +10,8 @@ load_dotenv()
 class APISettings:
     """Configuration for external API integrations."""
     
-    # Base URLs
-    JOLPICA_BASE_URL = os.getenv('JOLPICA_BASE_URL', 'https://api.jolpica.f1')
+    # Base URLs — Jolpica is Ergast successor at api.jolpi.ca/ergast
+    JOLPICA_BASE_URL = os.getenv('JOLPICA_BASE_URL', 'https://api.jolpi.ca')
     OPENF1_BASE_URL = os.getenv('OPENF1_BASE_URL', 'https://api.openf1.org')
     HUGGINGFACE_DATASET = os.getenv('HUGGINGFACE_DATASET', 'tracinginsights/RaceData')
     
@@ -35,19 +35,19 @@ class APISettings:
     CACHE_TTL_LONG = 3600     # 1 hour for static data
     CACHE_TTL_SHORT = 60      # 1 minute for live data
     
-    # Feature Flags
+    # Feature Flags — HF dataset enabled by default on Spaces (requires `datasets` + optional HF_TOKEN)
     ENABLE_JOLPICA = True
     ENABLE_OPENF1 = True     # Set to False if API is unavailable
     ENABLE_FASTF1 = True     # Set to False if you don't need telemetry
-    ENABLE_HUGGINGFACE = False  # Optional: set to True for historical data
+    ENABLE_HUGGINGFACE = os.getenv("ENABLE_HUGGINGFACE", "true").lower() not in ("0","false","no")
     
-    # API-specific Endpoints
+    # API-specific Endpoints — Ergast-compatible path is /ergast/f1/...
     JOLPICA_ENDPOINTS = {
-        'driver_standings': '/f1/{season}/driverStandings.json',
-        'constructor_standings': '/f1/{season}/constructorStandings.json',
-        'race_result': '/f1/{season}/{round}/results.json',
-        'qualifying_result': '/f1/{season}/{round}/qualifying.json',
-        'race_schedule': '/f1/{season}.json',
+        'driver_standings': '/ergast/f1/{season}/driverStandings.json',
+        'constructor_standings': '/ergast/f1/{season}/constructorStandings.json',
+        'race_result': '/ergast/f1/{season}/{round}/results.json',
+        'qualifying_result': '/ergast/f1/{season}/{round}/qualifying.json',
+        'race_schedule': '/ergast/f1/{season}.json',
     }
     
     OPENF1_ENDPOINTS = {

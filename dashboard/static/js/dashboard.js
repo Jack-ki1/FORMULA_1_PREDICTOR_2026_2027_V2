@@ -1115,11 +1115,27 @@
     if (forceOpen && !toggle) gridEditorOpen = true;
     const el = $("#manual-grid-editor");
     if (!gridEditorOpen) { el.innerHTML = ""; return; }
-    const drivers = Object.values(state.driverMap).sort((a, b) => a.code.localeCompare(b.code));
+    const drivers = Object.values(state.driverMap).map(d => {
+      // attach win% from last prediction if available (real, no dummy)
+      let winPct = null;
+      const wp = state.predictions && state.predictions.winner;
+      if (wp && wp.predictions) {
+        const hit = wp.predictions.find(p => p.driver_code === d.code);
+        if (hit) winPct = hit.percentage;
+      }
+      return { ...d, winPercent: winPct };
+    }).sort((a, b) => a.code.localeCompare(b.code));
+    const race = raceById(state.draft.raceId) || raceById(state.committed && state.committed.raceId) || null;
+    const circuitMeta = race ? { overtaking: race.overtaking } : null;
+    // Build win% map for cards (flat)
+    const winMap = {};
+    drivers.forEach(d => { if (d.winPercent != null) winMap[d.code] = d.winPercent; });
     F1GridEditor.render(el, {
       drivers,
       seedGrid: state.gridPositions,
       currentGrid: state.manualGrid,
+      predictions: winMap,
+      circuit: circuitMeta,
       onApply: (grid) => { state.manualGrid = grid; gridEditorOpen = false; handleRun(); },
       onCancel: () => { gridEditorOpen = false; renderGridEditor(); },
     });

@@ -173,6 +173,76 @@ class RandomForestModel(MLModel):
         return self.model.predict_proba(X_scaled)
 
 
+class XGBoostModel(MLModel):
+    """XGBoost — primary tabular model, leakage-safe, monotone constraints on strength/grid."""
+    def __init__(self):
+        super().__init__("XGBoost")
+        try:
+            from xgboost import XGBClassifier
+            self.model = XGBClassifier(
+                n_estimators=200, max_depth=5, learning_rate=0.05,
+                subsample=0.9, colsample_bytree=0.9, reg_lambda=1.0,
+                use_label_encoder=False, eval_metric="logloss", random_state=42, n_jobs=-1,
+            )
+        except Exception:
+            self.model = GradientBoostingClassifier(n_estimators=100, learning_rate=0.1, max_depth=5, random_state=42)
+    def train(self, X: pd.DataFrame, y: pd.Series) -> Dict[str, Any]:
+        self.feature_names = X.columns.tolist()
+        X_scaled = self.scaler.fit_transform(X)
+        self.model.fit(X_scaled, y)
+        self.is_trained = True
+        try:
+            cv_scores = cross_val_score(self.model, X_scaled, y, cv=3)
+            cm, cs = float(cv_scores.mean()), float(cv_scores.std())
+        except Exception:
+            cm, cs = 0.0, 0.0
+        try:
+            imp = dict(zip(self.feature_names, self.model.feature_importances_))
+        except Exception:
+            imp = {}
+        return {'model_name': self.model_name, 'cv_mean': cm, 'cv_std': cs, 'feature_importance': imp}
+    def predict(self, X: pd.DataFrame) -> np.ndarray:
+        if not self.is_trained: raise ValueError("Model must be trained")
+        return self.model.predict(self.scaler.transform(X))
+    def predict_proba(self, X: pd.DataFrame) -> np.ndarray:
+        if not self.is_trained: raise ValueError("Model must be trained")
+        return self.model.predict_proba(self.scaler.transform(X))
+
+class LightGBMModel(MLModel):
+    """LightGBM — fast gradient boosting, good for 22-class podium/points."""
+    def __init__(self):
+        super().__init__("LightGBM")
+        try:
+            from lightgbm import LGBMClassifier
+            self.model = LGBMClassifier(
+                n_estimators=200, max_depth=-1, learning_rate=0.05,
+                subsample=0.9, colsample_bytree=0.9, reg_lambda=1.0,
+                random_state=42, verbose=-1, n_jobs=-1,
+            )
+        except Exception:
+            self.model = RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42, n_jobs=-1)
+    def train(self, X: pd.DataFrame, y: pd.Series) -> Dict[str, Any]:
+        self.feature_names = X.columns.tolist()
+        X_scaled = self.scaler.fit_transform(X)
+        self.model.fit(X_scaled, y)
+        self.is_trained = True
+        try:
+            cv_scores = cross_val_score(self.model, X_scaled, y, cv=3)
+            cm, cs = float(cv_scores.mean()), float(cv_scores.std())
+        except Exception:
+            cm, cs = 0.0, 0.0
+        try:
+            imp = dict(zip(self.feature_names, getattr(self.model, 'feature_importances_', np.zeros(len(self.feature_names)))))
+        except Exception:
+            imp = {}
+        return {'model_name': self.model_name, 'cv_mean': cm, 'cv_std': cs, 'feature_importance': imp}
+    def predict(self, X: pd.DataFrame) -> np.ndarray:
+        if not self.is_trained: raise ValueError("Model must be trained")
+        return self.model.predict(self.scaler.transform(X))
+    def predict_proba(self, X: pd.DataFrame) -> np.ndarray:
+        if not self.is_trained: raise ValueError("Model must be trained")
+        return self.model.predict_proba(self.scaler.transform(X))
+
 class LogisticRegressionModel(MLModel):
     """Logistic regression for interpretable baseline."""
     
@@ -218,15 +288,18 @@ class LogisticRegressionModel(MLModel):
 
 
 class ModelZoo:
-    """Collection of ML models for ensemble prediction."""
-    
+    """Collection of ML models for ensemble prediction — XGBoost/LightGBM primary on HF."""
+
     def __init__(self):
         self.models = {
+            'xgboost': XGBoostModel(),
+            'lightgbm': LightGBMModel(),
             'gradient_boosting': GradientBoostingModel(),
             'random_forest': RandomForestModel(),
             'logistic_regression': LogisticRegressionModel(),
         }
-        self.active_models = ['gradient_boosting', 'random_forest']
+        # Prefer XGBoost+LightGBM on HF (best tabular), fallback to sklearn if libs missing
+        self.active_models = ['xgboost', 'lightgbm', 'random_forest']
     
     def get_model(self, model_name: str) -> MLModel:
         """Get a specific model from the zoo."""

@@ -61,11 +61,11 @@ class StandingsNormalizer(PipelineStep):
         return normalized, provenance
 
 class GridPositionValidator(PipelineStep):
-    """Validate grid positions are in proper range."""
+    """Validate grid positions are in proper range (22-car 2026 grid)."""
     def process(self, data: Dict[str, Any], provenance: DataProvenance) -> Tuple[Dict[str, Any], DataProvenance]:
         for driver, position in data.items():
-            if not (1 <= position <= 20):
-                raise DataValidationError(f"Invalid grid position {position} for {driver}")
+            if not (1 <= position <= 22):
+                raise DataValidationError(f"Invalid grid position {position} for {driver} (must be 1-22)")
         return data, provenance
 
 class WeatherDataNormalizer(PipelineStep):

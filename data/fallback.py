@@ -16,9 +16,11 @@ class FallbackStrategy:
         sorted_drivers = sorted(drivers, key=lambda x: x['strength'], reverse=True)
         
         for i, driver in enumerate(sorted_drivers):
+            # Clamp to 0 — never negative (previous dummy produced -17 for backmarkers)
+            pts = max(0, 25 - (i * 2))
             standings[driver['code']] = {
                 'position': i + 1,
-                'points': 25 - (i * 2),
+                'points': pts,
                 'wins': 1 if i == 0 else 0
             }
         

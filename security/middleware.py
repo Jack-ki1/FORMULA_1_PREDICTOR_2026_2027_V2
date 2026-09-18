@@ -20,55 +20,31 @@ def add_security_headers(f):
         return response
     return decorated_function
 
+_rate_limit_store: dict = {}
+
 def rate_limit(limit: str = None):
-    """Rate limiting decorator."""
+    """Process-wide in-memory rate limiting (falls back gracefully; use Redis in prod)."""
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             if not settings.RATE_LIMIT_ENABLED:
                 return f(*args, **kwargs)
-            
-            # Simple in-memory rate limiting (for production, use Redis)
             from datetime import datetime, timedelta
-            import time
-            
-            # Get client IP
-            client_ip = request.remote_addr
-            
-            # Create rate limit key
+            client_ip = request.remote_addr or "unknown"
             limit_key = f"rate_limit:{client_ip}:{f.__name__}"
-            
-            # Check if we have a rate limit record
-            if not hasattr(g, 'rate_limit_records'):
-                g.rate_limit_records = {}
-            
-            if limit_key in g.rate_limit_records:
-                record = g.rate_limit_records[limit_key]
-                last_request_time = record['time']
-                request_count = record['count']
-                
-                # Reset counter if time window has passed
-                if datetime.now() - last_request_time > timedelta(hours=1):
-                    request_count = 0
-                    
-                # Check if limit exceeded
-                max_requests = int(limit.split('/')[0]) if limit else 100
-                if request_count >= max_requests:
-                    logger.warning(f"Rate limit exceeded for {client_ip}")
-                    return jsonify({'error': 'Rate limit exceeded'}), 429
-                
-                # Update record
-                g.rate_limit_records[limit_key] = {
-                    'time': datetime.now(),
-                    'count': request_count + 1
-                }
+            now = datetime.now()
+            rec = _rate_limit_store.get(limit_key)
+            if rec:
+                last, count = rec["time"], rec["count"]
+                if now - last > timedelta(hours=1):
+                    count = 0
+                max_requests = int((limit or settings.RATE_LIMIT_DEFAULT).split("/")[0])
+                if count >= max_requests:
+                    logger.warning(f"Rate limit exceeded for {client_ip} on {f.__name__}")
+                    return jsonify({"error": "Rate limit exceeded"}), 429
+                _rate_limit_store[limit_key] = {"time": now, "count": count + 1}
             else:
-                # Create new record
-                g.rate_limit_records[limit_key] = {
-                    'time': datetime.now(),
-                    'count': 1
-                }
-            
+                _rate_limit_store[limit_key] = {"time": now, "count": 1}
             return f(*args, **kwargs)
         return decorated_function
     return decorator

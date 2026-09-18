@@ -43,7 +43,7 @@ class OpenF1Client(APIClient):
                     'provenance': {
                         'source': 'fallback',
                         'cache_status': 'fallback',
-                        'timestamp': dt.dt.datetime.now().isoformat(),
+                        'timestamp': dt.datetime.now().isoformat(),
                         'note': 'Using simulated grid positions'
                     }
                 }
@@ -74,7 +74,7 @@ class OpenF1Client(APIClient):
         Returns:
             Session key if found, None otherwise
         """
-        response = self.get_sessions(year=None, meeting_key=meeting_key)
+        response = self.get_sessions(season_year=2026)
         
         if response['source'] == 'error' or not response['data']:
             return None
@@ -96,8 +96,8 @@ class OpenF1Client(APIClient):
         try:
             response = self.get(
                 f'/v1/drivers?session_key={session_key}',
-                timeout=self.settings.LONG_TIMEOUT,
-                cache_ttl=self.api_settings.CACHE_TTL_LONG
+                timeout=api_settings.LONG_TIMEOUT,
+                cache_ttl=api_settings.CACHE_TTL_LONG
             )
             
             # If request failed, use fallback

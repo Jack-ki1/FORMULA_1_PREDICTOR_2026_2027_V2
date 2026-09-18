@@ -24,11 +24,11 @@ class Settings(BaseSettings):
     HOST: str = '0.0.0.0'
     PORT: int = 5000
     
-    # Flask Configuration
+    # Flask Configuration — HF Spaces Docker SDK expects 7860 via app_port; respect PORT env
     SECRET_KEY: str = 'dev-secret-key-change-in-production'
     FLASK_ENV: str = 'development'
     FLASK_HOST: str = '0.0.0.0'
-    FLASK_PORT: int = 5000
+    FLASK_PORT: int = 5000  # overridden at runtime if PORT / SPACE_ID detected (see __init__)
     
     # Cache Configuration
     API_CACHE_TTL: int = 300  # 5 minutes default
@@ -71,6 +71,9 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ''
     HUGGINGFACE_MODEL_ID: str = 'microsoft/phi-2'
     OPENAI_MODEL: str = 'gpt-3.5-turbo-instruct'
+    OLLAMA_BASE_URL: str = ''  # e.g. http://localhost:11434
+    OLLAMA_MODEL: str = 'llama3.1'
+    OLLAMA_API_KEY: str = 'ollama'
 
     # AI model configuration
     AI_MODEL_TEMPERATURE: float = 0.7
@@ -86,9 +89,19 @@ class Settings(BaseSettings):
     RATE_LIMIT_DEFAULT: str = '100/hour'
     RATE_LIMIT_AUTHED: str = '500/hour'
 
-    # Security headers
+    # Security headers — CSP must allow Tailwind/Chart.js CDNs + Google Fonts + inline theme script
+    # frame-ancestors is 'none' locally; on HF Spaces we relax to allow the hf.co iframe (patched in __init__)
     SECURITY_HEADERS: Dict[str, str] = {
-        'Content-Security-Policy': "default-src 'self'",
+        'Content-Security-Policy': (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; "
+            "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; "
+            "img-src 'self' data: https:; "
+            "media-src 'self' data: blob:; "
+            "connect-src 'self' https://api.jolpi.ca https://api.openf1.org https://huggingface.co https://*.huggingface.co; "
+            "frame-ancestors 'none'"
+        ),
         'X-Content-Type-Options': 'nosniff',
         'X-Frame-Options': 'DENY',
         'X-XSS-Protection': '1; mode=block',
@@ -148,6 +161,42 @@ class Settings(BaseSettings):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        # HF Spaces: if a persistent /data volume is mounted, prefer it for DB & caches
+        # Detect HF Space via SPACE_ID or explicit HF_PERSISTENT_DIR / HF volume
+        hf_data = "/data"
+        is_hf = bool(os.getenv("SPACE_ID") or os.getenv("HF_SPACE_ID") or os.path.isdir(hf_data))
+        # Port: HF Docker Spaces must listen on $PORT (default 7860). Override FLASK_PORT accordingly
+        env_port = os.getenv("PORT") or os.getenv("APP_PORT")
+        if env_port and env_port.isdigit():
+            self.FLASK_PORT = int(env_port)
+        elif is_hf and self.FLASK_PORT == 5000:
+            # default HF port when running on Spaces without explicit PORT env
+            self.FLASK_PORT = 7860
+
+        # Persist DB / caches to /data if available and DATABASE_URL is default sqlite
+        default_sqlite = "sqlite:///./f1_predictions.db"
+        if is_hf and os.path.isdir(hf_data) and self.DATABASE_URL == default_sqlite:
+            try:
+                os.makedirs(hf_data, exist_ok=True)
+                self.DATABASE_URL = f"sqlite:////{hf_data.lstrip('/')}/f1_predictions.db"
+                # Redirect caches to /data as well (survives restarts)
+                self.API_RESPONSES_CACHE = f"{hf_data}/api_responses"
+                self.FASTF1_CACHE_PATH = f"{hf_data}/fastf1_cache"
+                self.MODEL_CACHE_PATH = f"{hf_data}/model_cache"
+            except Exception:
+                pass
+        # Also honor explicit override via HF env vars
+        if os.getenv("DATABASE_URL"):
+            self.DATABASE_URL = os.getenv("DATABASE_URL")
+
+        # HF Spaces is served inside an iframe on https://huggingface.co — relax frame-ancestors there
+        if is_hf:
+            csp = self.SECURITY_HEADERS.get("Content-Security-Policy", "")
+            csp = csp.replace("frame-ancestors 'none'", "frame-ancestors 'self' https://huggingface.co https://*.huggingface.co")
+            self.SECURITY_HEADERS["Content-Security-Policy"] = csp
+            # X-Frame-Options must not be DENY inside HF iframe
+            self.SECURITY_HEADERS["X-Frame-Options"] = "SAMEORIGIN"
+
         # Database configuration validation
         if self.DATABASE_URL.startswith('sqlite') and not self.DATABASE_URL.startswith('sqlite:///'):
             raise ValueError("SQLite DATABASE_URL must start with 'sqlite:///'")

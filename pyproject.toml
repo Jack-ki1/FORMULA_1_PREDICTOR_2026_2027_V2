@@ -27,6 +27,9 @@ dependencies = [
     "openai>=1.0.0",
     "weasyprint>=60.0",
     "openpyxl>=3.1.0",
+    "huggingface-hub>=0.25.0",
+    "datasets>=2.19.0",
+    "gunicorn>=22.0.0",
 ]
 
 [project.optional-dependencies]
@@ -58,3 +61,4 @@ testpaths = ["tests"]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
+pythonpath = ["."]

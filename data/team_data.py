@@ -195,19 +195,25 @@ def get_all_enhanced_teams():
 
 def get_team_power_rankings():
     """
-    Return current team power rankings based on constructor championship standings.
-    In production, this would be based on actual championship points.
+    Live constructor power rankings — uses real championship points from Jolpica/snapshot.
     """
-    return [
-        {'team_id': 'mercedes', 'position': 1, 'points': 329, 'form': 'Excellent'},
-        {'team_id': 'mclaren', 'position': 2, 'points': 305, 'form': 'Strong'},
-        {'team_id': 'ferrari', 'position': 3, 'points': 278, 'form': 'Good'},
-        {'team_id': 'redbull', 'position': 4, 'points': 185, 'form': 'Mixed'},
-        {'team_id': 'astonmartin', 'position': 5, 'points': 112, 'form': 'Improving'},
-        {'team_id': 'williams', 'position': 6, 'points': 98, 'form': 'Solid'},
-        {'team_id': 'racingbulls', 'position': 7, 'points': 67, 'form': 'Emerging'},
-        {'team_id': 'alpine', 'position': 8, 'points': 62, 'form': 'Inconsistent'},
-        {'team_id': 'audi', 'position': 9, 'points': 58, 'form': 'Developing'},
-        {'team_id': 'haas', 'position': 10, 'points': 45, 'form': 'Struggling'},
-        {'team_id': 'cadillac', 'position': 11, 'points': 39, 'form': 'New'},
-    ]
+    try:
+        from data.season_2026 import get_constructor_standings
+        standings = get_constructor_standings()
+        # standings already live-normalized: [{position, team_id, points}]
+        form_map = {1:'Dominant',2:'Excellent',3:'Strong',4:'Strong',5:'Midfield',6:'Midfield',7:'Developing',8:'Developing',9:'Struggling',10:'Struggling',11:'Backmarker'}
+        return [{'team_id': s['team_id'], 'position': s['position'], 'points': s['points'], 'form': form_map.get(s['position'],'Midfield')} for s in standings]
+    except Exception:
+        return [
+            {'team_id': 'mercedes', 'position': 1, 'points': 503, 'form': 'Dominant'},
+            {'team_id': 'ferrari', 'position': 2, 'points': 358, 'form': 'Excellent'},
+            {'team_id': 'mclaren', 'position': 3, 'points': 306, 'form': 'Strong'},
+            {'team_id': 'redbull', 'position': 4, 'points': 230, 'form': 'Strong'},
+            {'team_id': 'racingbulls', 'position': 5, 'points': 77, 'form': 'Midfield'},
+            {'team_id': 'alpine', 'position': 6, 'points': 68, 'form': 'Midfield'},
+            {'team_id': 'haas', 'position': 7, 'points': 21, 'form': 'Developing'},
+            {'team_id': 'audi', 'position': 8, 'points': 17, 'form': 'Developing'},
+            {'team_id': 'williams', 'position': 9, 'points': 11, 'form': 'Struggling'},
+            {'team_id': 'astonmartin', 'position': 10, 'points': 3, 'form': 'Struggling'},
+            {'team_id': 'cadillac', 'position': 11, 'points': 0, 'form': 'Backmarker'},
+        ]

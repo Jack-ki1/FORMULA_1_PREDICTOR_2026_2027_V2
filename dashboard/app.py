@@ -9,8 +9,14 @@ from config.settings import settings
 
 def create_app():
     """Create and configure Flask application."""
-    app = Flask(__name__, static_folder='static')
-    
+    import os
+    # Absolute paths so static works regardless of cwd/import context
+    _here = os.path.dirname(os.path.abspath(__file__))
+    app = Flask(__name__,
+                static_folder=os.path.join(_here, 'static'),
+                template_folder=os.path.join(_here, 'templates'),
+                static_url_path='/static')
+
     # Configure Flask app
     app.config['SECRET_KEY'] = settings.SECRET_KEY
     app.config['DEBUG'] = settings.DEBUG
@@ -18,6 +24,13 @@ def create_app():
 
     # Enable CORS
     CORS(app)
+
+    # Global security headers
+    @app.after_request
+    def _sec_headers(resp):
+        for k, v in settings.SECURITY_HEADERS.items():
+            resp.headers.setdefault(k, v)
+        return resp
 
     # Register blueprints
     from dashboard.blueprints.landing import landing_bp
@@ -27,22 +40,31 @@ def create_app():
     from dashboard.blueprints.constructors import constructors_bp
     from dashboard.blueprints.analytics_settings import analytics_settings_bp
     from dashboard.blueprints.reports import reports_bp
+    from dashboard.blueprints.auth import auth_bp
+    from dashboard.blueprints.openapi import openapi_bp
 
-    # landing_bp owns '/' and renders homepage.html — this is the site's
-    # single home page. (Previously there was ALSO an @app.route('/') below
-    # rendering templates/landing.html; Flask/Werkzeug resolves duplicate
-    # rules by registration order, so that second route could never actually
-    # be served and templates/landing.html was silently dead code. Removed —
-    # see templates/landing.html's docstring-equivalent comment for what to
-    # do with that file.)
     app.register_blueprint(landing_bp)
     app.register_blueprint(predictions_bp, url_prefix='/dashboard')
     app.register_blueprint(standings_bp, url_prefix='/standings')
     app.register_blueprint(h2h_bp, url_prefix='/h2h')
     app.register_blueprint(constructors_bp, url_prefix='/constructors')
     app.register_blueprint(analytics_settings_bp, url_prefix='/analytics')
-    # reports_bp only provides API endpoints now, no UI page
     app.register_blueprint(reports_bp, url_prefix='/reports')
+    app.register_blueprint(auth_bp, url_prefix='/auth')
+    app.register_blueprint(openapi_bp)
+
+    # Prometheus metrics (only if monitoring enabled)
+    if settings.MONITORING_ENABLED:
+        try:
+            from monitoring.blueprint import monitoring_bp
+            app.register_blueprint(monitoring_bp, url_prefix='/monitoring')
+            # Legacy alias /metrics for Prometheus scrapers
+            @app.route('/metrics')
+            def _metrics_alias():
+                from monitoring.blueprint import metrics as _m
+                return _m()
+        except Exception:
+            pass
     
     # Add a direct route to /dashboard (without trailing slash) that redirects to /dashboard/
     @app.route('/dashboard')
@@ -53,7 +75,15 @@ def create_app():
     # Health check endpoint
     @app.route('/health')
     def health():
-        return jsonify({'status': 'healthy', 'version': '1.0.0'})
+        try:
+            from database.init import verify_database_connection
+            db_ok = verify_database_connection()
+        except Exception:
+            db_ok = False
+        return jsonify({'status': 'healthy' if db_ok else 'degraded',
+                        'version': settings.VERSION,
+                        'season': settings.SEASON_YEAR,
+                        'database': 'ok' if db_ok else 'unavailable'})
 
     # Error handlers
     @app.errorhandler(404)

@@ -25,6 +25,7 @@ venv/
 env/
 ENV/
 .venv
+.venv-*
 
 # IDE
 .vscode/
@@ -33,34 +34,33 @@ ENV/
 *.swo
 *~
 
-# Environment
+# Env secrets — keep example, ignore real
 .env
 .env.local
 
-# Cache
-cache/
+# Cache — keep directory structure but ignore contents ( HF ephemeral disk is cheap, but don't bloat build context )
+cache/api_responses/*.json
+cache/fastf1_cache/*
+cache/model_cache/*
 *.db
 *.sqlite
+*.sqlite3
 
 # Git
 .git/
 .gitignore
 
-# Documentation
-*.md
-docs/
-
-# Tests
-.pytest_cache/
-.coverage
-htmlcov/
-
 # OS
 .DS_Store
 Thumbs.db
+*.log
 
-# Media files (keep these local)
-*.mp4
-*.png
-*.jpg
-*.jpeg
+# Keep for HF Space: do NOT ignore these (needed in image)
+# README.md, docs/, and dashboard/static/img|videos are intentionally NOT ignored
+# (previous version ignored *.md, docs/, *.mp4, *.png — that broke the Space)
+
+# Tests — keep but don't need in production image if you want smaller image, uncomment:
+# tests/
+# .pytest_cache/
+# .coverage
+# htmlcov/

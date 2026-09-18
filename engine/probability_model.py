@@ -373,51 +373,24 @@ def calibrate_probabilities(probabilities: Dict[str, float], calibration_factor:
 
 
 def calculate_confidence_intervals(probabilities: Dict[str, float], confidence_level: float = 0.95) -> Dict[str, Dict[str, float]]:
-    """Calculate confidence intervals for probabilities using Monte Carlo simulation."""
+    """Calculate Wilson-score confidence intervals (analytical, no simulation drift)."""
     try:
-        import random
-        
-        # Simulate multiple runs to get confidence intervals
-        num_simulations = 1000
-        simulations = []
-        
-        for _ in range(num_simulations):
-            # Simulate a race outcome based on current probabilities
-            outcomes = []
-            for driver, prob in probabilities.items():
-                # Generate random number and check if driver wins
-                if random.random() < prob:
-                    outcomes.append(driver)
-            
-            # Count wins for each driver
-            win_counts = {}
-            for driver in probabilities.keys():
-                win_counts[driver] = outcomes.count(driver)
-            
-            # Convert to probabilities
-            sim_probs = {driver: count / num_simulations for driver, count in win_counts.items()}
-            simulations.append(sim_probs)
-        
-        # Calculate confidence intervals
-        confidence_intervals = {}
-        alpha = (1 - confidence_level) / 2
-        lower_percentile = int(alpha * num_simulations)
-        upper_percentile = int((1 - alpha) * num_simulations)
-        
-        for driver in probabilities.keys():
-            driver_probs = [sim.get(driver, 0.0) for sim in simulations]
-            driver_probs.sort()
-            
-            lower_bound = driver_probs[lower_percentile] if lower_percentile < len(driver_probs) else 0.0
-            upper_bound = driver_probs[upper_percentile] if upper_percentile < len(driver_probs) else 1.0
-            
-            confidence_intervals[driver] = {
-                'lower': round(lower_bound, 4),
-                'upper': round(upper_bound, 4)
+        import math
+        # Use Wilson interval: 1000 pseudo-observations gives sensible width for display
+        n = 1000
+        z = 1.96 if confidence_level >= 0.95 else 1.64
+        z2 = z * z
+        intervals = {}
+        for driver, p in probabilities.items():
+            p = max(0.0, min(1.0, float(p)))
+            denom = 1 + z2 / n
+            centre = (p + z2 / (2 * n)) / denom
+            margin = (z * math.sqrt((p * (1 - p) / n) + (z2 / (4 * n * n)))) / denom
+            intervals[driver] = {
+                'lower': round(max(0.0, centre - margin), 4),
+                'upper': round(min(1.0, centre + margin), 4),
             }
-        
-        return confidence_intervals
-        
+        return intervals
     except Exception as e:
         logger.error(f"Error calculating confidence intervals: {e}")
         raise

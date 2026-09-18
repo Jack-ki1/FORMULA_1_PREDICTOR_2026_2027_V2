@@ -167,3 +167,22 @@
 
   window.F1 = F1;
 })();
+
+// HF Spaces iframe helper — adds subtle badge when embedded on huggingface.co
+(function(){
+  try{
+    var inIframe = window.self !== window.top;
+    var isHF = location.hostname.includes('hf.space') || location.hostname.includes('huggingface.co');
+    if(inIframe || isHF){
+      document.addEventListener('DOMContentLoaded', function(){
+        var bar=document.createElement('div');
+        bar.style.cssText='position:fixed;bottom:8px;right:8px;z-index:99999;background:#111;color:#fff;font:600 11px Inter,sans-serif;padding:6px 10px;border-radius:999px;opacity:.85;backdrop-filter:blur(6px)';
+        bar.innerHTML='🤗 HF Space — F1 Predictor 2026';
+        bar.title='Running on Hugging Face Spaces (Docker SDK, port 7860, persistent /data if mounted)';
+        document.body.appendChild(bar);
+        // Relax X-Frame detection for analytics
+        if(window.F1) window.F1.isHF = true;
+      });
+    }
+  }catch(e){}
+})();

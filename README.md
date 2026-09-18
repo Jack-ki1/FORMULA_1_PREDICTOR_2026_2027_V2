@@ -1,4 +1,25 @@
-# F1 Predictor 2026
+---
+title: F1 Predictor 2026 — Race Intelligence Platform
+emoji: 🏎️
+colorFrom: red
+colorTo: navy
+sdk: docker
+app_port: 7860
+pinned: false
+license: mit
+short_description: ML-powered F1 race predictor — live Jolpica/OpenF1/FastF1 + HF datasets, Monte Carlo + XGBoost ensemble, Flask dashboard
+tags:
+  - formula1
+  - f1
+  - sports-analytics
+  - machine-learning
+  - flask
+  - huggingface
+---
+
+# F1 Predictor 2026 — Race Intelligence Platform
+
+> **Live on Hugging Face Spaces** — Docker SDK, port `7860`, ephemeral storage safe (uses `/data` bucket if mounted).
 
 A comprehensive Formula 1 race prediction system for the 2026 season, featuring ML-based predictions, live data integration, and interactive dashboards.
 
@@ -131,11 +152,33 @@ flake8 .
 python scripts/migrate_db.py
 ```
 
-## Docker Deployment
+## Hugging Face Spaces Deployment (Docker SDK)
+
+This repo is **HF Spaces-ready** (`sdk: docker`, `app_port: 7860`). The included `Dockerfile` uses `python:3.11-slim`, non-root `user` (1000), `gunicorn` on `0.0.0.0:7860`, and `wsgi:app`.
+
+1. **Create Space** on https://huggingface.co/new-space → choose **Docker** SDK, public/private.
+2. **Push**:
+   ```bash
+   git remote add space https://huggingface.co/spaces/<you>/<space-name>
+   git push space main
+   ```
+   HF will build `Dockerfile` and expose `https://<you>-<space>.hf.space`.
+
+3. **Secrets** (Settings → Secrets): `HF_TOKEN` (for private datasets), `SECRET_KEY`, `OPENAI_API_KEY`, etc. — never commit `.env`.
+4. **Persistent storage**: ephemeral by default. Attach a **Bucket** at `/data` (Space Settings → Storage) — the app auto-migrates `sqlite:///./f1_predictions.db` → `sqlite:////data/f1_predictions.db` and caches to `/data/*` when `/data` is mounted. Without a bucket, data survives until the Space sleeps.
+5. **Local Docker test**:
+   ```bash
+   docker build -t f1-predictor-2026 .
+   docker run -p 7860:7860 -e PORT=7860 f1-predictor-2026
+   # → http://localhost:7860/health
+   ```
+
+## Docker Deployment (local)
 
 ```bash
 docker build -t f1-predictor-2026 .
-docker run -p 5000:5000 f1-predictor-2026
+docker run -p 7860:7860 f1-predictor-2026
+# legacy local port 5000 still works via FLASK_PORT env, but HF expects 7860
 ```
 
 ## License
