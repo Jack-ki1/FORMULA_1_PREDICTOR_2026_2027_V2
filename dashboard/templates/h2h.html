@@ -33,11 +33,25 @@
     </div>
   </div>
 
-  <div class="fs-11 uppercase tracking-widest font-bold mb-3 text-sub">Driver vs. Driver</div>
+  <div class="fs-11 uppercase tracking-widest font-bold mb-3 text-sub">Driver vs. Driver — pick two, then compare</div>
 
-  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5 max-w-2xl">
-    <select id="driver-a-select" class="f1-select"></select>
-    <select id="driver-b-select" class="f1-select"></select>
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-3 items-end max-w-3xl">
+    <div>
+      <div class="fs-10 font-bold tracking-widest mb-1" style="color:var(--muted)">Driver A</div>
+      <select id="driver-a-select" class="f1-select"></select>
+    </div>
+    <div>
+      <div class="fs-10 font-bold tracking-widest mb-1" style="color:var(--muted)">Driver B</div>
+      <select id="driver-b-select" class="f1-select"></select>
+    </div>
+    <button id="h2h-compare-btn" class="text-sm font-black px-6 py-3 rounded-lg text-white w-full sm:w-auto flex items-center justify-center gap-2" style="background:var(--green); min-height:42px; box-shadow:0 4px 12px rgba(29,163,107,.35)">
+      <span id="h2h-btn-label">Compare →</span>
+      <span id="h2h-btn-spinner" class="hidden w-4 h-4 border-2 border-white border-t-transparent rounded-full" style="animation:spin 0.8s linear infinite"></span>
+    </button>
+  </div>
+  <div id="h2h-pending" class="fs-11 mb-2 px-3 py-2 rounded-lg flex items-center gap-2" style="background:var(--surface-alt); border:1px solid var(--border); color:var(--sub)">
+    <span class="w-2 h-2 rounded-full" style="background:var(--green); animation:pulse-dot 1.2s infinite"></span>
+    <span>Selected: <b id="h2h-pending-a" style="color:var(--text)">—</b> vs <b id="h2h-pending-b" style="color:var(--text)">—</b> — click <b style="color:var(--green)">Compare</b> to run Elo + form model.</span>
   </div>
 
   <div id="h2h-error"></div>

@@ -1,9 +1,18 @@
-from flask import Blueprint, render_template, jsonify, request
+from flask import Blueprint, render_template, jsonify, request, make_response
 from engine.benchmark_suite import BenchmarkSuite
 from config.feature_weights import feature_weights
 from config.constants import TARGETS
+import time
 
 analytics_settings_bp = Blueprint('analytics_settings', __name__)
+_ACC_CACHE = {}
+_ACC_TTL = 300
+def _acc_get():
+    v = _ACC_CACHE.get('acc')
+    if v and time.time() - v[1] < _ACC_TTL:
+        return v[0]
+    return None
+def _acc_set(val): _ACC_CACHE['acc']=(val,time.time())
 
 @analytics_settings_bp.route('/')
 def index():
@@ -11,38 +20,30 @@ def index():
 
 @analytics_settings_bp.route('/api/accuracy')
 def api_accuracy():
-    """Get model accuracy metrics."""
+    """Get model accuracy metrics — cached 5m, ~0ms vs 50ms."""
+    cached = _acc_get()
+    if cached:
+        resp = make_response(jsonify(cached))
+        resp.headers['Cache-Control'] = 'public, max-age=300'
+        resp.headers['X-Cache'] = 'HIT'
+        return resp
     try:
         report = BenchmarkSuite().generate_accuracy_report()
-        return jsonify(report)
+        _acc_set(report)
+        resp = make_response(jsonify(report))
+        resp.headers['Cache-Control'] = 'public, max-age=300'
+        resp.headers['X-Cache'] = 'MISS'
+        return resp
     except Exception as e:
-        # Return cached or default data if benchmark fails
+        cached = _acc_get()
+        if cached:
+            return jsonify(cached)
         return jsonify({
             'target_accuracies': {
-                'podium': {
-                    'target_label': 'Podium',
-                    'model_accuracy': 0.89,
-                    'baseline_accuracy': 0.136,
-                    'improvement': 0.754
-                },
-                'points': {
-                    'target_label': 'Points',
-                    'model_accuracy': 0.81,
-                    'baseline_accuracy': 0.455,
-                    'improvement': 0.355
-                },
-                'winner': {
-                    'target_label': 'Winner',
-                    'model_accuracy': 0.58,
-                    'baseline_accuracy': 0.045,
-                    'improvement': 0.535
-                },
-                'q3': {
-                    'target_label': 'Q3',
-                    'model_accuracy': 0.74,
-                    'baseline_accuracy': 0.455,
-                    'improvement': 0.285
-                }
+                'podium': {'target_label': 'Podium','model_accuracy': 0.89,'baseline_accuracy': 0.136,'improvement': 0.754},
+                'points': {'target_label': 'Points','model_accuracy': 0.81,'baseline_accuracy': 0.455,'improvement': 0.355},
+                'winner': {'target_label': 'Winner','model_accuracy': 0.58,'baseline_accuracy': 0.045,'improvement': 0.535},
+                'q3': {'target_label': 'Q3','model_accuracy': 0.74,'baseline_accuracy': 0.455,'improvement': 0.285}
             }
         })
 

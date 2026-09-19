@@ -133,16 +133,18 @@ def generate_prediction(
             ai_config[key] = kwargs[key]
 
     ai_mode = ai_config.get("ai_mode", "normal")
-    ai_model_name = ai_config.get("ai_model", "gemini-2.0-flash-exp")
+    ai_model_name = ai_config.get("ai_model", "pollinations-openai")
     ai_api_key = str(ai_config.get("ai_api_key", "") or "").strip()
     ai_weight = float(ai_config.get("ai_weight", 0.3))
     ai_temp = float(ai_config.get("ai_temperature", 0.7))
-    # Only call AI when mode is explicitly 'ai' AND a valid (non-placeholder) key is present
+    # Free models work without key – use_ai true for any ai_mode == "ai"
+    is_free_model = ai_model_name.lower().startswith(("puter-", "pollinations", "free-")) if ai_model_name else False
     use_ai = (
         ai_mode == "ai"
-        and bool(ai_api_key)
-        and not ai_api_key.startswith("YOUR_")
-        and len(ai_api_key) > 10
+        and (
+            is_free_model
+            or (bool(ai_api_key) and not ai_api_key.startswith("YOUR_") and len(ai_api_key) > 10)
+        )
     )
 
     logger.info(f"Generating prediction: {race_id} / {session_type} / weather={weather} / ai={use_ai}")

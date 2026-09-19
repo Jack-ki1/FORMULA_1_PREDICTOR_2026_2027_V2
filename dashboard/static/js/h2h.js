@@ -12,21 +12,42 @@
   let codeA = "VER";
   let codeB = "NOR";
 
+  function setPendingLabel(){
+    const aEl = $("#h2h-pending-a"), bEl = $("#h2h-pending-b");
+    const da = driverBy(codeA), db = driverBy(codeB);
+    if (aEl) aEl.textContent = da ? `${da.code} — ${da.name}` : codeA;
+    if (bEl) bEl.textContent = db ? `${db.code} — ${db.name}` : codeB;
+    const btnLabel = $("#h2h-btn-label");
+    if (btnLabel) btnLabel.textContent = `Compare ${codeA} vs ${codeB} →`;
+  }
   function init() {
-    drivers = JSON.parse(document.getElementById("driver-data").dataset.drivers || "[]");
-    if (!drivers.find((d) => d.code === codeA)) codeA = drivers[0]?.code;
-    if (!drivers.find((d) => d.code === codeB)) codeB = drivers[1]?.code;
-
-    const opts = drivers.map((d) => `<option value="${d.code}">${d.name} (${d.team_name})</option>`).join("");
-    $("#driver-a-select").innerHTML = opts;
-    $("#driver-b-select").innerHTML = opts;
-    $("#driver-a-select").value = codeA;
-    $("#driver-b-select").value = codeB;
-
-    $("#driver-a-select").addEventListener("change", (e) => { codeA = e.target.value; run(); });
-    $("#driver-b-select").addEventListener("change", (e) => { codeB = e.target.value; run(); });
-
-    run();
+    const el = document.getElementById("driver-data");
+    try { drivers = JSON.parse(el ? el.dataset.drivers || "[]" : "[]"); } catch(e){ drivers = []; }
+    if (!drivers.length) {
+      F1.getDrivers().then(list => { drivers = list; populate(); }).catch(()=>{});
+    } else {
+      populate();
+    }
+    function populate(){
+      if (!drivers.find((d) => d.code === codeA)) codeA = drivers[0]?.code || "VER";
+      if (!drivers.find((d) => d.code === codeB)) codeB = drivers[1]?.code || "HAM";
+      if (codeA===codeB) codeB = drivers.find(d=>d.code!==codeA)?.code || codeB;
+      const opts = drivers.map((d) => `<option value="${d.code}">${d.code} — ${F1.escapeHtml(d.name)} (${F1.escapeHtml(d.team_name)})</option>`).join("");
+      const selA = $("#driver-a-select"), selB = $("#driver-b-select");
+      if (selA) selA.innerHTML = opts;
+      if (selB) selB.innerHTML = opts;
+      if (selA) selA.value = codeA;
+      if (selB) selB.value = codeB;
+      setPendingLabel();
+      if (selA && !selA.dataset.bound) { selA.dataset.bound="1"; selA.addEventListener("change", (e) => { codeA = e.target.value; setPendingLabel(); }); }
+      if (selB && !selB.dataset.bound) { selB.dataset.bound="1"; selB.addEventListener("change", (e) => { codeB = e.target.value; setPendingLabel(); }); }
+      const btn = $("#h2h-compare-btn");
+      if (btn && !btn.dataset.bound) {
+        btn.dataset.bound="1";
+        btn.addEventListener("click", run);
+      }
+      run();
+    }
   }
 
   function driverBy(code) { return drivers.find((d) => d.code === code); }
@@ -37,11 +58,22 @@
       return;
     }
     $("#h2h-error").innerHTML = "";
+    setPendingLabel();
+    const btn = $("#h2h-compare-btn"), label = $("#h2h-btn-label"), spinner = $("#h2h-btn-spinner");
+    if (btn) btn.disabled = true;
+    if (label) label.textContent = `Running ${codeA} vs ${codeB}…`;
+    if (spinner) spinner.classList.remove("hidden");
     try {
       const result = await F1.api("/h2h/api/compare", { method: "POST", body: { driver_a: codeA, driver_b: codeB } });
       render(result);
+      if (label) label.textContent = `Compare ${codeA} vs ${codeB} →`;
     } catch (err) {
       F1.showError($("#h2h-error"), err.message);
+      if (label) label.textContent = `Compare ${codeA} vs ${codeB} →`;
+    } finally {
+      if (btn) btn.disabled = false;
+      if (spinner) spinner.classList.add("hidden");
+      setPendingLabel();
     }
   }
 
@@ -226,5 +258,12 @@
     }
   }
 
-  document.addEventListener("DOMContentLoaded", init);
+  // Robust init: DOMContentLoaded may have already fired (base.html loads scripts at bottom)
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+  // Fallback if F1 helpers not yet ready
+  setTimeout(()=>{ if (!drivers.length) init(); }, 400);
 })();

@@ -47,7 +47,7 @@
     countdown: 96540,
     isSprintWeekend: false, // Track if current race is a sprint weekend
     aiMode: "normal", // 'normal' or 'ai'
-    aiModel: "gemini-2.0-flash-exp",
+    aiModel: "pollinations-openai", // free by default – works with no key
     aiApiKey: "",
     aiWeight: 30, // 0-100 percentage
     aiTemperature: 0.7,
@@ -79,6 +79,7 @@
       renderInfoCircuit();
       startCountdown();
       bindEvents();
+      initPreRunManualGrid();
       
       // Initialize tab functionality
       initializeTabs();
@@ -134,8 +135,48 @@
   }
 
   // -----------------------------------------------------------------------
-  // AI Sidebar
+  // AI Sidebar – free models (Puter.js + Pollinations + local) + paid keys
   // -----------------------------------------------------------------------
+  function isFreeModel(model) {
+    if (!model) return false;
+    const m = model.toLowerCase();
+    return m.startsWith('puter-') || m.startsWith('pollinations') || m === 'free-local' || m.startsWith('free-');
+  }
+
+  function puterModelId(model) {
+    // Map dashboard free IDs to Puter model slugs
+    const map = {
+      'puter-gpt-4o-mini': 'openai/gpt-4o-mini',
+      'puter-gpt-5-nano': 'openai/gpt-5-nano',
+      'puter-claude-sonnet': 'anthropic/claude-sonnet-4',
+      'puter-gemini-flash': 'google/gemini-2.0-flash',
+      'puter-gemini-pro': 'google/gemini-2.5-pro',
+      'puter-llama-3.3': 'meta-llama/llama-3.3-70b-instruct',
+      'puter-mistral': 'mistralai/mistral-small-3.1-24b-instruct',
+      'puter-deepseek': 'deepseek/deepseek-r1',
+      'puter-qwen': 'qwen/qwen-2.5-72b-instruct',
+      'pollinations-openai': 'openai',
+      'free-local': 'openai'
+    };
+    return map[model] || model;
+  }
+
+  function updateApiKeyUI() {
+    const badge = document.getElementById('ai-key-badge');
+    const input = document.getElementById('ai-api-key');
+    if (!badge || !input) return;
+    if (isFreeModel(state.aiModel)) {
+      badge.style.display = 'inline-block';
+      badge.textContent = 'FREE — not needed';
+      input.placeholder = 'No key needed for free models (leave empty)';
+      input.style.borderColor = 'var(--green)';
+    } else {
+      badge.style.display = 'none';
+      input.placeholder = 'Paste your API key here';
+      input.style.borderColor = 'var(--border)';
+    }
+  }
+
   function initializeAISidebar() {
     const sidebar = document.getElementById('ai-sidebar');
     const closeBtn = document.getElementById('ai-sidebar-close');
@@ -177,11 +218,11 @@
       updateAIModeIndicator();
     });
 
-    // Apply button
+    // Apply button – FREE models no longer require API key
     applyBtn.addEventListener('click', () => {
-      // Validate API key if AI mode is selected
-      if (state.aiMode === 'ai' && !state.aiApiKey.trim()) {
-        alert('Please enter your API key to use AI mode');
+      // Validate API key ONLY for paid models
+      if (state.aiMode === 'ai' && !isFreeModel(state.aiModel) && !state.aiApiKey.trim()) {
+        alert('This model needs an API key. Pick a 🟢 FREE model or paste your key.');
         return;
       }
       
@@ -232,6 +273,7 @@
     // Model select
     modelSelect.addEventListener('change', (e) => {
       state.aiModel = e.target.value;
+      updateApiKeyUI();
       
       // Show/hide custom model input
       const customInputDiv = document.getElementById('custom-model-input');
@@ -269,14 +311,37 @@
       });
     });
 
-    // Chat functionality
+    // Chat preset buttons
+    document.querySelectorAll('[data-chat-preset]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const preset = btn.getAttribute('data-chat-preset');
+        if (chatInput) {
+          // If preset is vet and we have predictions, enrich with context
+          if (preset.toLowerCase().includes('vet') && state.committed && state.predictions && Object.keys(state.predictions).length) {
+            const race = raceById(state.committed.raceId);
+            const topPred = state.predictions.podium || state.predictions.winner || Object.values(state.predictions)[0];
+            let preds = {};
+            if (topPred && topPred.predictions) {
+              topPred.predictions.slice(0,5).forEach(p => preds[p.driver_code] = p.probability);
+            }
+            chatInput.value = preset + (preds && Object.keys(preds).length ? ' ' + JSON.stringify(preds) : '');
+          } else {
+            chatInput.value = preset;
+          }
+          chatInput.focus();
+        }
+      });
+    });
+
+    // Chat functionality – supports FREE (Puter.js + Pollinations + local) without API key
     if (chatSend && chatInput && chatMessages) {
       const sendChatMessage = async () => {
         const message = chatInput.value.trim();
-        if (!message || !state.aiApiKey) {
-          if (!state.aiApiKey) {
-            addChatMessage('ai', 'Please enter your API key in the Settings tab first.');
-          }
+        if (!message) return;
+        const free = isFreeModel(state.aiModel);
+        // For paid models still require key
+        if (!free && !state.aiApiKey.trim()) {
+          addChatMessage('ai', '⚠️ This model needs an API key. Switch to a 🟢 FREE model in Settings (e.g., Pollinations GPT-4o-Mini) — no key needed — or paste your key.');
           return;
         }
         
@@ -284,34 +349,79 @@
         addChatMessage('user', message);
         chatInput.value = '';
         chatSend.disabled = true;
+        chatSend.textContent = '…';
         
-        // Call AI API
-        try {
-          const response = await fetch('/dashboard/api/ai-chat', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              message: message,
-              model: state.aiModel,
-              api_key: state.aiApiKey,
-              temperature: state.aiTemperature,
-            }),
-          });
-          
-          const data = await response.json();
-          
-          if (data.error) {
-            addChatMessage('ai', `Error: ${data.error}`);
-          } else {
-            addChatMessage('ai', data.response);
+        // Build context for vetting: include current race/predictions if available
+        const ctx = {};
+        if (state.committed && state.committed.raceId) {
+          ctx.race_id = state.committed.raceId;
+          const top = state.predictions.podium || state.predictions.winner || Object.values(state.predictions)[0];
+          if (top && top.predictions) {
+            const map = {};
+            top.predictions.forEach(p => map[p.driver_code] = p.probability);
+            ctx.predictions = map;
+            ctx.grid_positions = state.gridPositions;
+            ctx.race_name = raceById(state.committed.raceId)?.name || state.committed.raceId;
           }
-        } catch (err) {
-          addChatMessage('ai', `Error: ${err.message}`);
-        } finally {
-          chatSend.disabled = false;
         }
+
+        // Try Puter.js directly for puter- models (zero backend, truly free)
+        let handled = false;
+        if (free && state.aiModel.startsWith('puter-') && typeof puter !== 'undefined' && puter.ai && puter.ai.chat) {
+          try {
+            // Build a project-aware prompt for Puter
+            let puterPrompt = message;
+            if (ctx.predictions) {
+              const topStr = Object.entries(ctx.predictions).slice(0,5).map(([c,p]) => `${c} ${(p*100).toFixed(1)}%`).join(', ');
+              puterPrompt = `[F1 Predictor 2026 – you know 22 drivers, 23 races, engine is Grid→MonteCarlo→chaos smoothing. Current race: ${ctx.race_name}, predictions: ${topStr}]\n\n` + message + `\n\nBe concise, vet the prediction if relevant.`;
+            }
+            const mid = puterModelId(state.aiModel);
+            const res = await puter.ai.chat(puterPrompt, { model: mid });
+            let text = '';
+            if (typeof res === 'string') text = res;
+            else if (res && res.message && res.message.content) {
+              const c = res.message.content;
+              text = Array.isArray(c) ? c.map(x => x.text || '').join('') : String(c);
+            } else if (res && res.text) text = res.text;
+            else text = JSON.stringify(res).slice(0,4000);
+            if (text) {
+              addChatMessage('ai', text + `\n\n<span class="fs-10 text-muted">— via Puter.js · ${mid} (free)</span>`);
+              handled = true;
+            }
+          } catch (e) {
+            console.warn('Puter.js failed, falling back to backend:', e);
+          }
+        }
+
+        if (!handled) {
+          // Call backend – now works without API key for free models (Pollinations + local fallback)
+          try {
+            const response = await fetch('/dashboard/api/ai-chat', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                message: message,
+                model: state.aiModel,
+                api_key: state.aiApiKey,
+                temperature: state.aiTemperature,
+                race_id: ctx.race_id || null,
+                predictions: ctx.predictions || null,
+                grid_positions: ctx.grid_positions || null,
+              }),
+            });
+            const data = await response.json();
+            if (data.error) {
+              addChatMessage('ai', `Error: ${data.error}`);
+            } else {
+              const prov = data.provider ? ` <span class="fs-10 text-muted">— via ${data.provider} · ${data.model || ''}</span>` : '';
+              addChatMessage('ai', (data.response || data.text || JSON.stringify(data)) + prov);
+            }
+          } catch (err) {
+            addChatMessage('ai', `Error: ${err.message} – try a different free model.`);
+          }
+        }
+        chatSend.disabled = false;
+        chatSend.textContent = 'Send';
       };
       
       chatSend.addEventListener('click', sendChatMessage);
@@ -325,7 +435,13 @@
     function addChatMessage(role, text) {
       const messageDiv = document.createElement('div');
       messageDiv.className = `ai-chat-message ai-chat-message-${role}`;
-      messageDiv.innerHTML = `<div class="ai-chat-text">${text}</div>`;
+      // Allow small HTML for provider badge, escape otherwise
+      const safe = text.replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/&lt;span/g, '<span').replace(/&lt;\/span&gt;/g, '</span>')
+        .replace(/&lt;br&gt;/g, '<br>').replace(/&lt;b&gt;/g, '<b>').replace(/&lt;\/b&gt;/g, '</b>');
+      // Simple markdown-ish: **bold**
+      const formatted = safe.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+      messageDiv.innerHTML = `<div class="ai-chat-text">${formatted}</div>`;
       chatMessages.appendChild(messageDiv);
       chatMessages.scrollTop = chatMessages.scrollHeight;
     }
@@ -417,6 +533,7 @@
       if (temperatureValue) temperatureValue.textContent = state.aiTemperature.toFixed(1);
     }
     
+    updateApiKeyUI();
     // API key is never loaded from storage for security
   }
 
@@ -611,14 +728,71 @@
     setStat("#stat-sims", n >= 1000 ? Math.round(n / 1000) + "k" : String(n), false);
   }
 
-  function startCountdown() {
-    setInterval(() => {
-      state.countdown = Math.max(0, state.countdown - 1);
-      const h = Math.floor(state.countdown / 3600);
-      const m = Math.floor((state.countdown % 3600) / 60);
-      const s = state.countdown % 60;
-      $("#countdown").textContent = `${h}h ${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`;
-    }, 1000);
+  function parseRaceDate(race){
+    if(!race || !race.date) return null;
+    try{
+      const months={Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+      const parts=race.date.split(" ");
+      if(parts.length<2) return null;
+      const mon=months[parts[0]];
+      const days=parts[1].split("-");
+      const day=parseInt(days[days.length-1],10);
+      if(isNaN(mon)||isNaN(day)) return null;
+      return new Date(Date.UTC(2026, mon, day, 14, 0, 0));
+    }catch(e){ return null; }
+  }
+  function nextRaceForCountdown(){
+    const sel = state.draft.raceId ? raceById(state.draft.raceId) : null;
+    if(sel && sel.status==="upcoming"){
+      const d=parseRaceDate(sel);
+      if(d) return {race:sel, date:d, label: sel.name + " — Race"};
+    }
+    const upcoming = state.calendar.filter(r=>r.status==="upcoming").sort((a,b)=>a.round-b.round)[0];
+    if(upcoming){
+      const d=parseRaceDate(upcoming);
+      if(d) return {race:upcoming, date:d, label: upcoming.name + " — Race"};
+    }
+    const sorted=[...state.calendar].sort((a,b)=>a.round-b.round);
+    for(const r of sorted){
+      const d=parseRaceDate(r);
+      if(d && d>new Date()) return {race:r, date:d, label:r.name + " — Race"};
+    }
+    return null;
+  }
+  function formatCountdown(diffMs){
+    if(diffMs<=0) return {text:"LIVE NOW", sub:"Session in progress"};
+    const totalS=Math.floor(diffMs/1000);
+    const d=Math.floor(totalS/86400);
+    const h=Math.floor((totalS%86400)/3600);
+    const m=Math.floor((totalS%3600)/60);
+    const s=totalS%60;
+    if(d>0) return {text:`${d}d ${String(h).padStart(2,"0")}h ${String(m).padStart(2,"0")}m ${String(s).padStart(2,"0")}s`, sub:`${d} day${d>1?"s":""} until lights out`};
+    return {text:`${String(h).padStart(2,"0")}h ${String(m).padStart(2,"0")}m ${String(s).padStart(2,"0")}s`, sub: h<2 ? "Almost time — final preparations" : "Next session approaching"};
+  }
+  function startCountdown(){
+    const tick=()=>{
+      const now=new Date();
+      const utcEl=$("#utc-clock"), dateEl=$("#utc-date");
+      if(utcEl) utcEl.textContent=now.toISOString().substr(11,8)+" UTC";
+      if(dateEl) dateEl.textContent=now.toUTCString().slice(0,16);
+      const nxt=nextRaceForCountdown();
+      const cd=$("#countdown"), sub=$("#countdown-sub");
+      if(!nxt){
+        if(cd) cd.textContent="—";
+        if(sub) sub.textContent="No upcoming race in calendar";
+        return;
+      }
+      const diff=nxt.date - now;
+      const fmt=formatCountdown(diff);
+      if(cd){
+        cd.textContent=fmt.text;
+        cd.style.color = diff>0 && diff<3600000 ? "#FF3B30" : "";
+        cd.style.textShadow = diff>0 && diff<3600000 ? "0 0 12px rgba(255,59,48,.45)" : "";
+      }
+      if(sub) sub.textContent=nxt.label + " • " + fmt.sub;
+    };
+    tick();
+    setInterval(tick, 1000);
   }
 
   // -----------------------------------------------------------------------
@@ -866,7 +1040,9 @@
     
     state.committed = Object.assign({}, state.draft, { session: state.session, subSession: state.subSession });
     state.runState = "running";
-    state.manualGrid = null;
+    // Do NOT clear state.manualGrid here — pre-run 22-dropdown grid is the alternative when live qualifying fails
+    // Sync any dropdown picks that happened after last render
+    if (typeof syncManualGridFromDropdowns === "function") { try { syncManualGridFromDropdowns(); } catch(e){} }
     renderRunUI();
 
     // Build AI config if AI mode is enabled
@@ -883,27 +1059,33 @@
       console.log("Running prediction for:", state.session, state.subSession);
       
       if (state.session === "race") {
-        // Build a simulated grid from the Q3 model unless the user already
-        // supplied one manually.
-        const qualResult = await F1.api("/dashboard/api/predict-session", {
-          method: "POST",
-          body: {
-            race_id: state.committed.raceId,
-            session_type: "qualifying",
-            sub_session: "q3",
-            weather: state.committed.weather,
-            feature_weights: F1.getTuning(),
-            simulation_count: state.committed.simCount,
-            ...aiConfig,
-          },
-        });
-        const q3 = qualResult.predictions && qualResult.predictions.q3;
-        const simulatedGrid = {};
-        if (q3 && q3.predictions) {
-          q3.predictions.forEach((p, i) => { simulatedGrid[p.driver_code] = i + 1; });
+        const hasManual = gridMode === "manual" && state.manualGrid && Object.keys(state.manualGrid).length > 0;
+        let simulatedGrid = {};
+        if (!hasManual) {
+          // Only call live qualifying when no manual 22-dropdown grid is provided
+          try {
+            const qualResult = await F1.api("/dashboard/api/predict-session", {
+              method: "POST",
+              body: {
+                race_id: state.committed.raceId,
+                session_type: "qualifying",
+                sub_session: "q3",
+                weather: state.committed.weather,
+                feature_weights: F1.getTuning(),
+                simulation_count: state.committed.simCount,
+                ...aiConfig,
+              },
+            });
+            const q3 = qualResult.predictions && qualResult.predictions.q3;
+            if (q3 && q3.predictions) q3.predictions.forEach((p, i) => { simulatedGrid[p.driver_code] = i + 1; });
+          } catch (e) {
+            console.warn("Live qualifying fetch failed, falling back to manual/auto grid:", e.message);
+          }
+        } else {
+          console.log("Using pre-run manual 22-dropdown grid, skipping live qualifying fetch");
         }
-        state.gridPositions = state.manualGrid || simulatedGrid;
-        state.gridSource = state.manualGrid ? "manual" : (Object.keys(simulatedGrid).length ? "simulated" : null);
+        state.gridPositions = hasManual ? state.manualGrid : simulatedGrid;
+        state.gridSource = hasManual ? "manual" : (Object.keys(simulatedGrid).length ? "simulated" : null);
 
         const raceResult = await F1.api("/dashboard/api/predict-session", {
           method: "POST",
@@ -1107,6 +1289,218 @@
     $("#grid-toggle-manual").addEventListener("click", () => renderGridEditor(true, true));
     const revertBtn = $("#grid-revert");
     if (revertBtn) revertBtn.addEventListener("click", () => { state.manualGrid = null; handleRun(); });
+  }
+
+  // ── Grid Mode — own row above Run Prediction: Auto-fetched vs Manual (22 dropdowns, 11 per row) ──
+  let gridMode = localStorage.getItem("f1-grid-mode") || "auto";
+  let autoGridCache = null; // {grid, source}
+  function initPreRunManualGrid() {
+    const sec = $("#grid-mode-section");
+    if (!sec) return;
+    // Always show after driverMap loads (Friday-style: 22 boxes ready before Run)
+    sec.style.display = "block";
+    renderPreRunDropdowns();
+    bindPreRunGridControls();
+    hydratePreRunDropdowns();
+    updateManualGridStatus();
+    setGridMode(gridMode);
+    if (state.draft.raceId) refreshAutoGrid();
+  }
+  function setGridMode(mode) {
+    gridMode = mode === "manual" ? "manual" : "auto";
+    localStorage.setItem("f1-grid-mode", gridMode);
+    const autoBtn = $("#grid-mode-auto"), manualBtn = $("#grid-mode-manual");
+    const autoPane = $("#grid-auto-pane"), manualPane = $("#grid-manual-pane");
+    if (autoBtn) { autoBtn.style.background = gridMode==="auto" ? "var(--navy)" : "var(--surface)"; autoBtn.style.color = gridMode==="auto" ? "#fff" : "var(--text)"; autoBtn.style.borderColor = gridMode==="auto" ? "var(--navy)" : "var(--border)"; }
+    if (manualBtn) { manualBtn.style.background = gridMode==="manual" ? "var(--navy)" : "var(--surface)"; manualBtn.style.color = gridMode==="manual" ? "#fff" : "var(--text)"; manualBtn.style.borderColor = gridMode==="manual" ? "var(--navy)" : "var(--border)"; }
+    if (autoPane) autoPane.style.display = gridMode==="auto" ? "block" : "none";
+    if (manualPane) manualPane.style.display = gridMode==="manual" ? "block" : "none";
+    if (gridMode==="manual") {
+      syncManualGridFromDropdowns();
+    } else {
+      if (autoGridCache) state.gridSource = "simulated";
+      // Fetch auto grid if not yet cached for this race
+      if (state.draft.raceId) refreshAutoGrid();
+    }
+  }
+  async function refreshAutoGrid() {
+    const status = $("#auto-grid-status"), display = $("#auto-grid-readonly"), toggle = $("#auto-grid-toggle");
+    if (!state.draft.raceId) {
+      if (status) status.innerHTML = `<span class="fs-11 text-sub">Select a Grand Prix above. Auto grid will be fetched from live qualifying.</span>`;
+      if (display) display.style.display = "none";
+      if (toggle) toggle.style.display = "none";
+      autoGridCache = null;
+      return;
+    }
+    if (status) status.innerHTML = `<span class="f1-mono fs-11">Fetching live qualifying grid for ${F1.escapeHtml(state.draft.raceId.toUpperCase())}…</span>`;
+    try {
+      const qual = await F1.api("/dashboard/api/predict-session", {
+        method:"POST",
+        body:{ race_id: state.draft.raceId, session_type:"qualifying", sub_session:"q3", weather: state.draft.weather, feature_weights: F1.getTuning(), simulation_count: 800 }
+      });
+      const q3 = qual.predictions && qual.predictions.q3;
+      const grid = {};
+      if (q3 && q3.predictions) q3.predictions.forEach((p,i)=> grid[p.driver_code]=i+1);
+      autoGridCache = {grid, source: qual.predictions ? "live" : "simulated"};
+      const n = Object.keys(grid).length;
+      if (status) status.innerHTML = n ? `<span class="fs-11 font-bold" style="color:var(--green)">✓ Auto-filled ${n}/22 from ${qual.predictions ? "Q3 model" : "live qualifying"} — expand to see.</span> <span class="fs-10 text-sub">Switch to Manual to override. P1-P10 drives prediction.</span>` : `<span class="fs-11" style="color:var(--amber)">Live qualifying unavailable — will use simulation or Manual grid. Pick Manual to set P1-P22.</span>`;
+      if (toggle) { toggle.style.display = n ? "inline-block" : "none"; toggle.textContent = "Show auto-filled grid ▾"; }
+      if (display) {
+        const ordered = Object.entries(grid).sort((a,b)=>a[1]-b[1]);
+        display.innerHTML = ordered.map(([code,pos])=>{
+          const d = state.driverMap[code] || {team_color:"#9AA0AC"};
+          const col = d.team_color || "#9AA0AC";
+          return `<div class="flex items-center gap-1.5 p-1.5 rounded" style="border:1px solid var(--border); background:var(--surface)"><span class="fs-10 font-black" style="color:var(--muted)">P${pos}</span><span class="w-2 h-4 rounded" style="background:${col}"></span><span class="fs-11 font-bold">${code}</span></div>`;
+        }).join("");
+        display.style.display = "none";
+      }
+      // If in auto mode, also set state.gridPositions preview for Run
+      if (gridMode==="auto" && n) { state.manualGrid = null; state.gridSource = "simulated"; }
+    } catch(e) {
+      if (status) status.innerHTML = `<span class="fs-11" style="color:var(--amber)">Auto-fetch failed: ${F1.escapeHtml(e.message)} — use Manual grid as alternative.</span>`;
+      autoGridCache = null;
+    }
+  }
+  function renderPreRunDropdowns() {
+    const wrap = $("#manual-grid-dropdowns");
+    if (!wrap || !state.driverMap || !Object.keys(state.driverMap).length) return;
+    const drivers = Object.values(state.driverMap).sort((a,b)=>a.code.localeCompare(b.code));
+    const existing = {};
+    wrap.querySelectorAll("select[data-pos]").forEach(s => { if (s.value) existing[parseInt(s.dataset.pos,10)] = s.value; });
+    wrap.innerHTML = "";
+    for (let pos = 1; pos <= 22; pos++) {
+      const sel = document.createElement("select");
+      sel.className = "f1-select text-xs";
+      sel.dataset.pos = String(pos);
+      sel.innerHTML = `<option value="">P${pos} — — select —</option>` + drivers.map(d=>`<option value="${d.code}">${d.code} — ${F1.escapeHtml(d.name)} #${d.number}</option>`).join("");
+      if (existing[pos]) sel.value = existing[pos];
+      sel.addEventListener("change", () => {
+        const chosen = sel.value;
+        if (!chosen) { syncManualGridFromDropdowns(); return; }
+        wrap.querySelectorAll("select[data-pos]").forEach(other => {
+          if (other !== sel && other.value === chosen) other.value = "";
+        });
+        syncManualGridFromDropdowns();
+      });
+      const box = document.createElement("div");
+      box.className = "flex flex-col gap-1";
+      box.innerHTML = `<div class="fs-10 font-black tracking-widest" style="color:var(--muted)">P${pos}</div>`;
+      box.appendChild(sel);
+      wrap.appendChild(box);
+    }
+  }
+  function hydratePreRunDropdowns() {
+    const wrap = $("#manual-grid-dropdowns");
+    if (!wrap || !state.manualGrid) return;
+    wrap.querySelectorAll("select[data-pos]").forEach(s => {
+      const pos = parseInt(s.dataset.pos,10);
+      const code = Object.keys(state.manualGrid).find(k => state.manualGrid[k] === pos) || "";
+      s.value = code;
+    });
+  }
+  function syncManualGridFromDropdowns() {
+    const wrap = $("#manual-grid-dropdowns");
+    if (!wrap) return;
+    const grid = {};
+    const seen = new Set();
+    let dup = null;
+    wrap.querySelectorAll("select[data-pos]").forEach(s => {
+      const pos = parseInt(s.dataset.pos,10);
+      const code = (s.value || "").trim().toUpperCase();
+      if (!code) return;
+      if (seen.has(code)) dup = code;
+      seen.add(code);
+      grid[code] = pos;
+    });
+    const errEl = $("#manual-grid-error");
+    if (dup) {
+      if (errEl) { errEl.textContent = `Duplicate driver ${dup} — each driver can occupy only one P slot.`; errEl.style.display = "block"; }
+    } else {
+      if (errEl) errEl.style.display = "none";
+    }
+    if (!dup && Object.keys(grid).length) {
+      state.manualGrid = grid;
+      if (gridMode==="manual") state.gridSource = "manual";
+    } else if (!Object.keys(grid).length) {
+      state.manualGrid = null;
+      if (gridMode==="manual") state.gridSource = null;
+    }
+    updateManualGridStatus();
+  }
+  function updateManualGridStatus() {
+    const badge = $("#manual-grid-status");
+    const summary = $("#manual-grid-summary");
+    const wrap = $("#manual-grid-dropdowns");
+    if (!wrap || !badge) return;
+    let filled = 0;
+    wrap.querySelectorAll("select[data-pos]").forEach(s => { if (s.value) filled++; });
+    if (!filled) {
+      badge.textContent = "— empty (auto grid will be used)";
+      badge.style.color = "var(--sub)";
+      if (summary) summary.textContent = "";
+    } else if (filled < 22) {
+      badge.textContent = `${filled}/22 set — will override live grid`;
+      badge.style.color = "var(--amber)";
+      const preview = Object.entries(state.manualGrid || {}).sort((a,b)=>a[1]-b[1]).slice(0,3).map(([c,p])=>`P${p} ${c}`).join(", ");
+      if (summary) summary.textContent = preview;
+    } else {
+      badge.textContent = "22/22 complete — full manual grid active";
+      badge.style.color = "var(--green)";
+      const preview = Object.entries(state.manualGrid || {}).sort((a,b)=>a[1]-b[1]).slice(0,4).map(([c,p])=>`P${p} ${c}`).join(", ");
+      if (summary) summary.textContent = preview + " …";
+    }
+  }
+  function bindPreRunGridControls() {
+    const autoBtn = $("#grid-mode-auto"), manualBtn = $("#grid-mode-manual");
+    const toggle = $("#auto-grid-toggle");
+    const clearBtn = $("#manual-grid-clear");
+    const autoFillBtn = $("#manual-grid-autofill");
+    const revBtn = $("#manual-grid-reverse");
+    if (autoBtn && !autoBtn.dataset.bound) {
+      autoBtn.dataset.bound = "1";
+      autoBtn.addEventListener("click", () => setGridMode("auto"));
+    }
+    if (manualBtn && !manualBtn.dataset.bound) {
+      manualBtn.dataset.bound = "1";
+      manualBtn.addEventListener("click", () => setGridMode("manual"));
+    }
+    if (toggle && !toggle.dataset.bound) {
+      toggle.dataset.bound = "1";
+      toggle.addEventListener("click", () => {
+        const disp = $("#auto-grid-display");
+        const isHidden = !disp || disp.style.display === "none";
+        if (disp) disp.style.display = isHidden ? "grid" : "none";
+        toggle.textContent = isHidden ? "Hide auto-filled grid ▴" : "Show auto-filled grid ▾";
+      });
+    }
+    if (clearBtn && !clearBtn.dataset.bound) {
+      clearBtn.dataset.bound = "1";
+      clearBtn.addEventListener("click", () => {
+        $("#manual-grid-dropdowns").querySelectorAll("select[data-pos]").forEach(s=> s.value="");
+        syncManualGridFromDropdowns();
+      });
+    }
+    if (autoFillBtn && !autoFillBtn.dataset.bound) {
+      autoFillBtn.dataset.bound = "1";
+      autoFillBtn.addEventListener("click", () => {
+        const drivers = Object.values(state.driverMap).sort((a,b)=> (b.strength||0)-(a.strength||0));
+        const wrap = $("#manual-grid-dropdowns");
+        wrap.querySelectorAll("select[data-pos]").forEach((s, idx) => {
+          s.value = drivers[idx] ? drivers[idx].code : "";
+        });
+        syncManualGridFromDropdowns();
+      });
+    }
+    if (revBtn && !revBtn.dataset.bound) {
+      revBtn.dataset.bound = "1";
+      revBtn.addEventListener("click", () => {
+        const wrap = $("#manual-grid-dropdowns");
+        const vals = Array.from(wrap.querySelectorAll("select[data-pos]")).map(s=> s.value);
+        const rev = vals.slice().reverse();
+        wrap.querySelectorAll("select[data-pos]").forEach((s,i)=> s.value = rev[i]||"");
+        syncManualGridFromDropdowns();
+      });
+    }
   }
 
   let gridEditorOpen = false;
@@ -1800,14 +2194,22 @@
   // Events
   // -----------------------------------------------------------------------
   function bindEvents() {
+    // Pre-run manual grid visibility helper
+    function afterRaceChange() {
+      initPreRunManualGrid();
+      // If user had a previous manual grid for another race, clear it on race switch
+      // (keep if they want to carry over, but warn via status)
+      updateManualGridStatus();
+    }
     ["#hero-race-select", "#cb-race-select"].forEach((sel) => {
       $(sel).addEventListener("change", (e) => {
         state.draft.raceId = e.target.value;
+        // Changing race clears previous race's manual grid unless user explicitly keeps it
+        // We keep the picks but update status hint to show it's carry-over
         renderHero();
         renderRealResultBanner();
-        populateSubSessionSelect(); // Update sub-sessions when race changes
-        
-        // ✅ Enable/disable run button based on race selection
+        populateSubSessionSelect();
+        afterRaceChange();
         const runBtn = $("#run-btn");
         if (state.draft.raceId) {
           runBtn.disabled = false;

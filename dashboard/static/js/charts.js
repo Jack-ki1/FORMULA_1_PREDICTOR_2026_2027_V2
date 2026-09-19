@@ -12,6 +12,16 @@
 
   const registry = [];
   function track(chart, rebuild) { registry.push({ chart, rebuild }); return chart; }
+  function destroyExisting(canvas) {
+    try {
+      const existing = Chart.getChart(canvas);
+      if (existing) existing.destroy();
+    } catch (e) {}
+    // Also clean up registry entries for this canvas
+    for (let i = registry.length - 1; i >= 0; i--) {
+      if (registry[i].chart.canvas === canvas) registry.splice(i, 1);
+    }
+  }
 
   document.addEventListener("f1:theme-change", function () {
     registry.forEach((entry) => { try { entry.rebuild(); } catch (e) {} });
@@ -36,6 +46,7 @@
   F1Charts.barDistribution = function (canvas, labels, values, colors, opts) {
     opts = opts || {};
     function build() {
+      destroyExisting(canvas);
       const p = F1.palette();
       return new Chart(canvas.getContext("2d"), {
         type: "bar",
@@ -75,6 +86,7 @@
   F1Charts.barVertical = function (canvas, labels, datasets, opts) {
     opts = opts || {};
     function build() {
+      destroyExisting(canvas);
       const p = F1.palette();
       return new Chart(canvas.getContext("2d"), {
         type: "bar",
@@ -97,6 +109,7 @@
   // ---- Doughnut (DNF risk split, points share) ----
   F1Charts.doughnut = function (canvas, labels, values, colors) {
     function build() {
+      destroyExisting(canvas);
       const p = F1.palette();
       return new Chart(canvas.getContext("2d"), {
         type: "doughnut",
@@ -117,6 +130,7 @@
   F1Charts.gauge = function (canvas, value, opts) {
     opts = opts || {};
     function build() {
+      destroyExisting(canvas);
       const p = F1.palette();
       const color = value >= 70 ? p.green : value >= 45 ? p.amber : p.red;
       return new Chart(canvas.getContext("2d"), {
@@ -146,6 +160,7 @@
   F1Charts.line = function (canvas, labels, datasets, opts) {
     opts = opts || {};
     function build() {
+      destroyExisting(canvas);
       const p = F1.palette();
       return new Chart(canvas.getContext("2d"), {
         type: "line",
@@ -169,6 +184,7 @@
   // ---- Radar (H2H attribute comparison) ----
   F1Charts.radar = function (canvas, labels, datasets) {
     function build() {
+      destroyExisting(canvas);
       const p = F1.palette();
       return new Chart(canvas.getContext("2d"), {
         type: "radar",
@@ -197,6 +213,7 @@
   F1Charts.barChart = function (canvas, labels, values, colors, opts) {
     opts = opts || {};
     function build() {
+      destroyExisting(canvas);
       const p = F1.palette();
       
       // Handle multi-dataset case
@@ -262,6 +279,7 @@
   F1Charts.lineChart = function (canvas, labels, datasets, opts) {
     opts = opts || {};
     function build() {
+      destroyExisting(canvas);
       const p = F1.palette();
       const formattedDatasets = Object.entries(datasets).map(([label, data], index) => ({
         label,

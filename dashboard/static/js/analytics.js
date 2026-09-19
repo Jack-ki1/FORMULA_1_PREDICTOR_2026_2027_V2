@@ -54,10 +54,6 @@
         ],
         { legend: true, yMax: 100 }
       );
-
-      $("#recommendations").innerHTML = (report.recommendations || []).map((r) =>
-        `<div class="fs-11 text-sub px-3 py-2 rounded-lg surface-alt">${F1.escapeHtml(r)}</div>`
-      ).join("");
     } catch (error) {
       console.error("Error loading accuracy data:", error);
       // Fallback to default data
@@ -85,8 +81,6 @@
         ],
         { legend: true, yMax: 100 }
       );
-      
-      $("#recommendations").innerHTML = `<div class="fs-11 text-sub px-3 py-2 rounded-lg surface-alt">Using cached accuracy data - check API connection</div>`;
     }
   }
 

@@ -29,13 +29,38 @@ class MonteCarloSimulator:
         reliability = np.array([self.driver_map[c]['reliability'] / 100 for c in codes])
         wet_skill = np.array([self.driver_map[c]['wet_skill'] / 100 for c in codes])
         grid_effect = np.array([grid_prior_multiplier(grid[c]) for c in codes])
+        # Smart overtaking modulation: high-overtaking circuits reduce grid stickiness
+        # We infer circuit overtaking from race_id via calendar (fallback Medium)
+        try:
+            from data.calendar_2026 import get_race_by_id
+            race_meta = get_race_by_id(race_id) or {}
+            over = race_meta.get('overtaking', 'Medium')
+        except Exception:
+            over = 'Medium'
+        over_factor = {'Low': 1.18, 'Medium': 1.0, 'High': 0.82}.get(over, 1.0)
+        # Effective grid weight: P1-P10 more sticky, adjusted by circuit
+        adj_grid_effect = grid_effect * over_factor
+        # Strength heavily compressed to remove always-win bias: 35-97 → 0.58-0.68
+        # Grid now primary for P1-P10 stickiness; skill still matters for midfield battles
+        norm_strength = 0.58 + (strength - 0.35) * (0.10 / 0.62)  # narrow 10-point band
+        dampened_strength = norm_strength * (0.88 + 0.12 * grid_effect)  # P1 100%, P22 ~90%
         weather_effect = 0.0
         if weather == 'wet':
-            weather_effect = (wet_skill - wet_skill.mean()) * .22
+            weather_effect = (wet_skill - wet_skill.mean()) * .12
         elif weather == 'mixed':
-            weather_effect = (wet_skill - wet_skill.mean()) * .11
-        base = strength * .72 + grid_effect * .28 + weather_effect
-        score = base + rng.normal(0, .025 + chaos_level / 5000, (n, len(codes))) + rng.normal(0, .045 + chaos_level / 1400, (n, len(codes)))
+            weather_effect = (wet_skill - wet_skill.mean()) * .06
+        # 42% strength + 58% grid — grid dominates top-10 hold, strength decides close fights
+        base = dampened_strength * .42 + adj_grid_effect * .58 + weather_effect
+        # Larger variance so P1 win ~44% Medium, High allows more overtakes
+        pos_array = np.array([grid[c] for c in codes])
+        chaos_base = chaos_level / 3800
+        noise_scale_small = 0.105 + chaos_base
+        noise_scale_mid = 0.125 + chaos_base * 1.15
+        noise_scale_back = 0.155 + chaos_base * 1.4
+        scales = np.where(pos_array <= 3, noise_scale_small,
+                 np.where(pos_array <= 10, noise_scale_mid, noise_scale_back))
+        scale_matrix = np.tile(scales, (n, 1))
+        score = base + rng.normal(0, scale_matrix) + rng.normal(0, scale_matrix * 0.5)
         dnf_rate = (1 - reliability) * (.09 + chaos_level / 1500)
         if weather == 'wet': dnf_rate *= 1.6
         elif weather == 'mixed': dnf_rate *= 1.25

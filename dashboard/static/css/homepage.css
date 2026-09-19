@@ -55,10 +55,10 @@
         ::-webkit-scrollbar-thumb{background:#3b3f47;border-radius:20px}
         ::-webkit-scrollbar-thumb:hover{background:var(--accent)}
 
-        .container{width:min(1280px,calc(100% - 40px));margin:auto}
+        .container{width:min(1180px,calc(100% - 40px));margin:auto}
         .display{font-family:Montserrat,sans-serif;font-style:italic;font-weight:900;letter-spacing:-.065em}
         .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-variant-numeric:tabular-nums}
-        .kicker{font-size:10px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--muted-2)}
+        .kicker{font-size:9px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--muted-2)}
         .muted{color:var(--muted)}
 
         .glass{
@@ -114,7 +114,7 @@
 
         .hero{
             position:relative;
-            min-height:860px;
+            min-height:640px;
             isolation:isolate;
             overflow:hidden;
             display:flex;
@@ -429,41 +429,6 @@
             will-change:transform;
         }
 
-        .cursor-dot{
-            position:fixed;
-            left:0;
-            top:0;
-            width:10px;
-            height:10px;
-            border-radius:50%;
-            background:var(--accent);
-            pointer-events:none;
-            z-index:200;
-            opacity:0;
-            mix-blend-mode:screen;
-            transition:opacity .2s ease;
-        }
-
-        .cursor-ring{
-            position:fixed;
-            left:0;
-            top:0;
-            width:30px;
-            height:30px;
-            border:1px solid rgba(225,6,0,.65);
-            border-radius:50%;
-            pointer-events:none;
-            z-index:199;
-            opacity:0;
-            transition:opacity .2s ease,width .2s ease,height .2s ease,border-color .2s ease;
-        }
-
-        .is-hover .cursor-ring{
-            width:44px;
-            height:44px;
-            border-color:rgba(255,255,255,.75);
-        }
-
         .media-controls{
             position:absolute;
             left:14px;
@@ -582,9 +547,9 @@
         }
 
         @media(max-width:767px){
-            .container{width:min(100% - 28px,1280px)}
+            .container{width:min(100% - 28px,1180px)}
             .hero{
-                min-height:780px;
+                min-height:560px;
                 background-position:65% center;
             }
         }

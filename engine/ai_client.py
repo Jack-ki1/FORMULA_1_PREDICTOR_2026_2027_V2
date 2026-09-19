@@ -1,6 +1,11 @@
 '''
 AI/LLM Client for prediction enhancement.
-Supports Gemini, OpenAI, Anthropic, Groq, Mistral, Cohere, and OpenAI-compatible endpoints.
+Supports Gemini, OpenAI, Anthropic, Groq, Mistral, Cohere, OpenAI-compatible,
+plus FREE providers: Puter.js (client-side), Pollinations, HuggingFace-free,
+and a deterministic local fallback so the AI section never breaks.
+
+The AI is project-aware: every prompt is enriched with calendar/lineup/engine context
+via ai.project_context.
 '''
 import logging
 import requests
@@ -10,6 +15,17 @@ from ai.provider import AIProviderManager
 
 logger = logging.getLogger(__name__)
 
+# Free provider detection
+FREE_MODEL_PREFIXES = (
+    "pollinations", "puter", "free", "hf-free", "local",
+)
+FREE_MODEL_IDS = {
+    # Puter free models (client-side, but also work server-side via Pollinations fallback)
+    "puter-gpt-4o-mini", "puter-gpt-5-nano", "puter-claude-sonnet", "puter-gemini-flash",
+    "gpt-4o-mini-free", "pollinations-openai", "pollinations-mistral", "openai-free",
+    "gemini-flash-free", "llama-free", "mistral-free",
+}
+
 
 class AIClient:
     """Client for AI/LLM providers to enhance predictions and chat."""
@@ -17,9 +33,25 @@ class AIClient:
     def __init__(self):
         self.provider_manager = AIProviderManager()
     
+    def is_free_model(self, model: str) -> bool:
+        """True if model is a free/no-key model (Puter, Pollinations, local)."""
+        m = model.lower()
+        if m in FREE_MODEL_IDS:
+            return True
+        if m.startswith(FREE_MODEL_PREFIXES):
+            return True
+        # Puter-style slugs like openai/gpt-4o-mini, google/gemini-2.0 etc are often free via Puter
+        if "/" in m and m.startswith(("openai/", "google/", "anthropic/", "meta-llama/", "mistralai/")):
+            # These are Puter model IDs – treat as free when no api key is present (fallback path handles it)
+            return False  # only free if api_key empty – handled in call_ai
+        return False
+
     def _determine_provider(self, model: str) -> str:
         """Determine provider from model name."""
         m = model.lower()
+        # Free provider prefix
+        if m.startswith("pollinations") or m.startswith("puter") or m.startswith("free"):
+            return "free"
         if m.startswith('gemini'):
             return 'gemini'
         elif m.startswith('gpt') or m.startswith('o1') or m.startswith('o3') or m.startswith('text-embedding') or m.startswith('chatgpt'):
@@ -39,6 +71,22 @@ class AIClient:
         else:
             return 'openai_compatible'
     
+    def _enrich_with_project_context(self, prompt: str, context: Dict[str, Any] | None = None) -> str:
+        """Inject project-aware context so free models also understand the predictor."""
+        try:
+            from ai.project_context import build_project_context
+            ctx = build_project_context(
+                user_query=prompt,
+                race_id=(context or {}).get("race_id"),
+                predictions=(context or {}).get("predictions"),
+                grid_positions=(context or {}).get("grid_positions"),
+            )
+            # Prepend context, keep user prompt at end for relevance
+            return ctx
+        except Exception as e:
+            logger.debug(f"Context enrichment failed: {e}")
+            return prompt
+
     def call_ai(
         self,
         model: str,
@@ -46,25 +94,68 @@ class AIClient:
         prompt: str,
         temperature: float = 0.7,
         max_tokens: int = 1000,
+        context: Dict[str, Any] | None = None,
     ) -> Optional[Dict[str, Any]]:
         """
         Call AI API with the given prompt.
+        Now supports FREE models (no API key): routes through Pollinations / local fallback.
         
         Args:
             model: Model identifier
-            api_key: API key for the provider
+            api_key: API key for the provider (optional for free models)
             prompt: Prompt text
             temperature: Temperature parameter
             max_tokens: Maximum tokens to generate
+            context: Optional project context {race_id, predictions, grid_positions}
         
         Returns:
             AI response as dictionary, or None if failed
         """
+        # Enrich prompt with project knowledge for all calls
+        enriched_prompt = self._enrich_with_project_context(prompt, context)
+
+        # Free path: no API key required – use provider_manager free chain
         if not api_key or not api_key.strip():
-            logger.warning("No API key provided for AI call")
+            # If model is free-ish or any model with no key, try free chain first
+            try:
+                # Re-use project-enriched prompt
+                result = self.provider_manager.predict(prompt=enriched_prompt, model=model, temperature=temperature, max_tokens=max_tokens, context=context)
+                if result and result.get("text"):
+                    return result
+            except Exception as e:
+                logger.debug(f"Free provider chain failed for {model}: {e}")
+            # Also try pollinations directly with shorter raw prompt as fallback
+            try:
+                from ai.free_providers import PollinationsFreeClient
+                client = PollinationsFreeClient()
+                # For pollinations, use raw prompt (enriched is too long for GET URL); send enriched via POST if needed
+                raw = prompt[:3000]
+                res = client.chat(raw, model="openai", temperature=temperature, max_tokens=max_tokens)
+                if res:
+                    return res
+            except Exception:
+                pass
+            # Local rule-based is guaranteed – try it
+            try:
+                from ai.free_providers import LocalRuleBasedClient
+                client = LocalRuleBasedClient()
+                return client.chat(prompt, context=context)
+            except Exception:
+                pass
+            logger.warning("No API key and free providers unavailable")
             return None
 
         provider = self._determine_provider(model)
+
+        # If provider is free, delegate to free chain even when key is present (cheaper/free)
+        if provider == "free":
+            try:
+                result = self.provider_manager.predict(prompt=enriched_prompt, model=model, temperature=temperature, max_tokens=max_tokens, context=context)
+                if result and result.get("text"):
+                    return result
+            except Exception as e:
+                logger.debug(f"Free provider failed: {e}")
+            # continue to try paid providers below as fallback if free fails
         
         try:
             if provider == 'gemini':
@@ -79,6 +170,8 @@ class AIClient:
                     }
                 }
                 try:
+                    # Use enriched prompt for Gemini
+                    payload["contents"][0]["parts"][0]["text"] = enriched_prompt
                     resp = requests.post(url, headers=headers, json=payload, timeout=30)
                     if resp.status_code == 200:
                         data = resp.json()
@@ -114,7 +207,7 @@ class AIClient:
                 payload = {
                     'model': model,
                     'max_tokens': max_tokens,
-                    'messages': [{'role': 'user', 'content': prompt}],
+                    'messages': [{'role': 'user', 'content': enriched_prompt}],
                     'temperature': temperature,
                 }
                 resp = requests.post(url, headers=headers, json=payload, timeout=25)
@@ -136,7 +229,7 @@ class AIClient:
                     'model': model,
                     'messages': [
                         {'role': 'system', 'content': 'You are a concise Formula 1 analysis assistant.'},
-                        {'role': 'user', 'content': prompt}
+                        {'role': 'user', 'content': enriched_prompt}
                     ],
                     'temperature': temperature,
                     'max_tokens': max_tokens
@@ -160,7 +253,7 @@ class AIClient:
                     'model': model,
                     'messages': [
                         {'role': 'system', 'content': 'You are a concise Formula 1 analysis assistant.'},
-                        {'role': 'user', 'content': prompt}
+                        {'role': 'user', 'content': enriched_prompt}
                     ],
                     'temperature': temperature,
                     'max_tokens': max_tokens
@@ -185,7 +278,7 @@ class AIClient:
                     'model': model if model != 'custom' else 'gpt-4o',
                     'messages': [
                         {'role': 'system', 'content': 'You are a concise Formula 1 analysis assistant. State uncertainty and do not invent live telemetry.'},
-                        {'role': 'user', 'content': prompt}
+                        {'role': 'user', 'content': enriched_prompt}
                     ],
                     'temperature': temperature,
                     'max_tokens': max_tokens,
@@ -201,6 +294,20 @@ class AIClient:
 
         except Exception as e:
             logger.warning(f"AI API request failed for {model}: {e}")
+
+        # Paid providers failed – try free chain as last resort before giving up
+        try:
+            result = self.provider_manager.predict(prompt=enriched_prompt, model=model, temperature=temperature, max_tokens=max_tokens, context=context)
+            if result and result.get("text"):
+                logger.info(f"Fallback to free provider succeeded after paid failure for {model}")
+                return result
+        except Exception:
+            pass
+        try:
+            from ai.free_providers import LocalRuleBasedClient
+            return LocalRuleBasedClient().chat(prompt, context=context)
+        except Exception:
+            pass
 
         return None
     
@@ -246,9 +353,23 @@ class AIClient:
     ) -> Optional[Dict[str, Any]]:
         """
         Get AI insights and adjustments for race predictions.
+        Now project-aware: injects full calendar/lineup/engine context.
+        Works with free models (no api_key) too.
         """
-        # Enhanced prompt with more context
-        prompt = f"""You are an F1 racing expert with deep knowledge of driver performance, circuit characteristics, and race strategy. Analyze the following race prediction and provide insights.
+        # Build enriched context for project-aware prompt
+        try:
+            from ai.project_context import build_project_context
+            project_ctx = build_project_context(
+                user_query=f"Analyze this race prediction and vet it for adjustments.",
+                race_id=race_context.get("race_id"),
+                predictions=current_predictions,
+            )
+            # Prepend project knowledge to the analysis prompt
+            _prefix = project_ctx[:3000] + "\n\n---\n\n"
+        except Exception:
+            _prefix = ""
+
+        prompt = f"""{_prefix}You are an F1 racing expert with deep knowledge of driver performance, circuit characteristics, and race strategy. Analyze the following race prediction and provide insights.
 
 Race: {race_context.get('race_name', 'Unknown')}
 Circuit: {race_context.get('circuit', 'Unknown')}
@@ -277,7 +398,9 @@ Important guidelines:
 - If you're uncertain about a driver, don't include them in adjustments"""
         
         try:
-            response = self.call_ai(model, api_key, prompt, temperature)
+            # Pass project context so free providers also get it
+            ctx = {"race_id": race_context.get("race_id"), "predictions": current_predictions}
+            response = self.call_ai(model, api_key, prompt, temperature, context=ctx)
             
             if response and response.get('text'):
                 try:
@@ -329,6 +452,40 @@ Important guidelines:
             'raw_text': 'Fallback analysis due to AI unavailability'
         }
     
+    def vet_predictions(
+        self,
+        model: str,
+        api_key: str,
+        race_id: str,
+        session_type: str,
+        predictions: Dict[str, float],
+        grid_positions: Dict[str, int] | None = None,
+        weather: str = "dry",
+        temperature: float = 0.6,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Vet a prediction – returns markdown analysis that can be shown directly in chat.
+        Works without API key (free path).
+        """
+        try:
+            from ai.project_context import build_vet_prompt
+            prompt = build_vet_prompt(race_id, session_type, predictions, grid_positions, weather)
+            ctx = {"race_id": race_id, "predictions": predictions, "grid_positions": grid_positions}
+            res = self.call_ai(model, api_key, prompt, temperature=temperature, max_tokens=1200, context=ctx)
+            if res and res.get("text"):
+                return res
+        except Exception as e:
+            logger.warning(f"vet_predictions failed: {e}")
+        # Fallback deterministic vet
+        try:
+            from ai.free_providers import LocalRuleBasedClient
+            from ai.project_context import build_vet_prompt
+            prompt = build_vet_prompt(race_id, session_type, predictions, grid_positions, weather)
+            return LocalRuleBasedClient().chat(prompt, context={"race_id": race_id, "predictions": predictions, "grid_positions": grid_positions})
+        except Exception:
+            pass
+        return None
+
     def _format_predictions(self, predictions: Dict[str, float]) -> str:
         """Format predictions for prompt."""
         sorted_preds = sorted(predictions.items(), key=lambda x: x[1], reverse=True)

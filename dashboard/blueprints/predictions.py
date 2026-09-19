@@ -92,63 +92,121 @@ def api_predict_session():
 
 @predictions_bp.route('/api/ai-chat', methods=['POST'])
 def api_ai_chat():
-    """AI chat endpoint for the dashboard AI sidebar."""
+    """AI chat endpoint – project-aware, works with FREE models (no API key)."""
     data = request.get_json(silent=True)
     if not data:
         return jsonify({'error': 'Request body must be JSON'}), 400
 
     message = data.get('message', '')
-    model = data.get('model', 'gemini-2.0-flash-exp')
-    api_key = data.get('api_key', '')
-    temperature = float(data.get('temperature', 0.7))
+    model = data.get('model', 'pollinations-openai')
+    api_key = data.get('api_key', '') or data.get('ai_api_key', '')
+    temperature = float(data.get('temperature', data.get('ai_temperature', 0.7)))
+    # Project context for vetting
+    race_id = data.get('race_id')
+    predictions = data.get('predictions')  # {driver: prob}
+    grid_positions = data.get('grid_positions')
 
     if not message:
         return jsonify({'error': 'message is required'}), 400
 
     try:
         from engine.ai_client import ai_client
-        
-        # Enhanced system prompt for F1-specific chat
-        system_prompt = """You are an expert Formula 1 analyst and racing strategist. You have deep knowledge of:
-- Current F1 regulations and technical rules
-- Driver performance histories and driving styles
-- Team strategies and car characteristics
-- Circuit layouts and their specific challenges
-- Weather impacts on racing
-- Tyre strategies and degradation patterns
+        from ai.project_context import build_project_context
 
-Provide detailed, accurate, and insightful responses about F1 racing. When discussing predictions or probabilities, always acknowledge uncertainty and the many variables that affect race outcomes. Be specific but cautious about definitive predictions."""
-        
-        enhanced_message = f"{system_prompt}\n\nUser question: {message}"
-        
-        if api_key:
-            res = ai_client.call_ai(model=model, api_key=api_key, prompt=enhanced_message, temperature=temperature, max_tokens=1500)
-            if res and 'text' in res:
-                return jsonify({'response': res['text'], 'provider': res.get('provider'), 'model': model}), 200
-            else:
-                # Provide helpful fallback response
-                fallback_response = """I'm having trouble connecting to the AI service right now. However, I can still help you with F1 predictions using the traditional ML models available in the dashboard. 
+        # Build project-aware enriched prompt when race context present
+        context = {"race_id": race_id, "predictions": predictions, "grid_positions": grid_positions} if race_id or predictions else None
 
-For specific questions about:
-- Driver predictions: Use the prediction dashboard
-- Race analysis: Check the standings and head-to-head sections
-- Strategy insights: The simulation results provide detailed strategy analysis
-
-Please try again with a valid API key for AI-enhanced responses."""
-                return jsonify({'response': fallback_response, 'provider': 'fallback', 'model': model}), 200
-        else:
-            from ai.provider import AIProviderManager
-            manager = AIProviderManager()
-            result = manager.predict(prompt=enhanced_message)
-            return jsonify({'response': result.get('text', str(result)), 'provider': 'fallback', 'model': model}), 200
+        # ai_client handles FREE vs paid + project enrichment internally
+        res = ai_client.call_ai(model=model, api_key=api_key or "", prompt=message, temperature=temperature, max_tokens=1500, context=context)
+        if res and res.get('text'):
+            return jsonify({'response': res['text'], 'provider': res.get('provider', 'ai'), 'model': model}), 200
+        # Deterministic fallback – local rules always answer
+        from ai.free_providers import LocalRuleBasedClient
+        fallback = LocalRuleBasedClient().chat(message, context=context)
+        return jsonify({'response': fallback['text'], 'provider': 'local-rules', 'model': model}), 200
     except Exception as e:
         logger.error(f"AI chat error: {e}")
         if settings.DEBUG:
             import traceback
             logger.error(traceback.format_exc())
-        
-        error_response = f"I encountered an error processing your request: {str(e)}. Please check your API key and try again."
+        # Never fail hard – return local answer
+        try:
+            from ai.free_providers import LocalRuleBasedClient
+            fallback = LocalRuleBasedClient().chat(message, context={"race_id": race_id, "predictions": predictions})
+            return jsonify({'response': fallback['text'], 'provider': 'local-rules', 'model': model}), 200
+        except Exception:
+            pass
+        error_response = f"I encountered an error processing your request: {str(e)}. The preview still works – try a 🟢 Free model with no key, or check your API key for paid models."
         return jsonify({'response': error_response, 'provider': 'error', 'model': model}), 200  # Return 200 with error message instead of 500
+
+
+@predictions_bp.route('/api/ai-vet', methods=['POST'])
+def api_ai_vet():
+    """Vet a just-run prediction – project-aware, free."""
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({'error': 'Request body must be JSON'}), 400
+    race_id = data.get('race_id')
+    session_type = data.get('session_type', 'race')
+    weather = data.get('weather', 'dry')
+    model = data.get('model', 'pollinations-openai')
+    api_key = data.get('api_key', '') or data.get('ai_api_key', '')
+    temperature = float(data.get('temperature', 0.6))
+    predictions = data.get('predictions') or data.get('winner_probabilities')
+    grid_positions = data.get('grid_positions')
+
+    if not race_id or not predictions:
+        return jsonify({'error': 'race_id and predictions are required'}), 400
+
+    # Normalise predictions: accept {CODE: prob} or {"predictions": [...]}
+    if isinstance(predictions, dict) and "podium" in predictions:
+        # full predictions object
+        try:
+            podium = predictions.get("podium", {}).get("predictions", [])
+            predictions = {p["driver_code"]: p["probability"] for p in podium} if podium else predictions.get("winner", {})
+        except Exception:
+            pass
+    if isinstance(predictions, list):
+        predictions = {p.get("driver_code", p.get("code")): p.get("probability", p.get("prob", 0)) for p in predictions}
+
+    try:
+        from engine.ai_client import ai_client
+        res = ai_client.vet_predictions(model=model, api_key=api_key or "", race_id=race_id, session_type=session_type, predictions=predictions, grid_positions=grid_positions, weather=weather, temperature=temperature)
+        if res and res.get('text'):
+            return jsonify({'response': res['text'], 'provider': res.get('provider'), 'model': model, 'vetted': True}), 200
+        return jsonify({'response': 'No vetting available.', 'provider': 'none', 'model': model}), 200
+    except Exception as e:
+        logger.error(f"AI vet error: {e}")
+        return jsonify({'response': f"Vetting failed: {str(e)}", 'provider': 'error', 'model': model}), 200
+
+
+@predictions_bp.route('/api/ai-models', methods=['GET'])
+def api_ai_models():
+    """List available models – free and paid – so UI can stay in sync."""
+    return jsonify({
+        "free": [
+            {"id": "pollinations-openai", "label": "Pollinations GPT-4o-Mini (Free, no key)", "needs_key": False, "via": "pollinations + puter"},
+            {"id": "puter-gpt-4o-mini", "label": "Puter GPT-4o Mini (Free)", "needs_key": False, "via": "puter.js"},
+            {"id": "puter-gpt-5-nano", "label": "Puter GPT-5 Nano (Free)", "needs_key": False, "via": "puter.js"},
+            {"id": "puter-claude-sonnet", "label": "Puter Claude Sonnet (Free)", "needs_key": False, "via": "puter.js"},
+            {"id": "puter-gemini-flash", "label": "Puter Gemini 2.0 Flash (Free)", "needs_key": False, "via": "puter.js"},
+            {"id": "puter-gemini-pro", "label": "Puter Gemini 2.5 Pro (Free)", "needs_key": False, "via": "puter.js"},
+            {"id": "puter-llama-3.3", "label": "Puter Llama 3.3 70B (Free)", "needs_key": False, "via": "puter.js"},
+            {"id": "puter-mistral", "label": "Puter Mistral Small (Free)", "needs_key": False, "via": "puter.js"},
+            {"id": "puter-deepseek", "label": "Puter DeepSeek R1 (Free)", "needs_key": False, "via": "puter.js"},
+            {"id": "puter-qwen", "label": "Puter Qwen 2.5 (Free)", "needs_key": False, "via": "puter.js"},
+            {"id": "free-local", "label": "Local Project-Aware (Offline, always works)", "needs_key": False, "via": "local-rules"},
+        ],
+        "paid": [
+            {"id": "gemini-2.0-flash-exp", "label": "Gemini 2.0 Flash", "needs_key": True},
+            {"id": "gpt-4o", "label": "GPT-4o", "needs_key": True},
+            {"id": "gpt-4o-mini", "label": "GPT-4o Mini", "needs_key": True},
+            {"id": "claude-3.5-sonnet", "label": "Claude 3.5 Sonnet", "needs_key": True},
+            {"id": "llama-3.3-70b", "label": "Llama 3.3 70B (Groq)", "needs_key": True},
+            {"id": "mistral-large", "label": "Mistral Large", "needs_key": True},
+        ],
+        "note": "Free models use Puter.js (browser) + Pollinations + local fallback – no API key needed. Paid models go direct to provider."
+    })
 
 
 def validate_prediction_request(data: dict) -> list:

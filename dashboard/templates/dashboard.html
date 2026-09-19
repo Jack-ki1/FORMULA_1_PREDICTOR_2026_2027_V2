@@ -46,47 +46,63 @@
         <div id="ai-settings-content">
           <h3 class="ai-sidebar-section-title">Select AI Model</h3>
         <div class="ai-sidebar-detail">
-          <label class="ai-detail-label">Choose from 20+ models</label>
+          <label class="ai-detail-label">Choose from 30+ models — Free included ✅</label>
           <select id="ai-model-select" class="ai-select">
-            <optgroup label="Google Gemini">
+            <optgroup label="🟢 FREE — Puter.js (No API Key, User-Pays)">
+              <option value="pollinations-openai">Pollinations GPT-4o-Mini (Free, Instant)</option>
+              <option value="puter-gpt-4o-mini">Puter GPT-4o Mini (Free via Puter)</option>
+              <option value="puter-gpt-5-nano">Puter GPT-5 Nano (Free)</option>
+              <option value="puter-claude-sonnet">Puter Claude Sonnet 4 (Free)</option>
+              <option value="puter-gemini-flash">Puter Gemini 2.0 Flash (Free)</option>
+              <option value="puter-gemini-pro">Puter Gemini 2.5 Pro (Free)</option>
+              <option value="puter-llama-3.3">Puter Llama 3.3 70B (Free)</option>
+              <option value="puter-mistral">Puter Mistral Small (Free)</option>
+              <option value="puter-deepseek">Puter DeepSeek R1 (Free)</option>
+              <option value="puter-qwen">Puter Qwen 2.5 (Free)</option>
+            </optgroup>
+            <optgroup label="🟢 FREE — Local / Pollinations Backup">
+              <option value="free-local">Local Project-Aware (Always Works, Offline)</option>
+            </optgroup>
+            <optgroup label="Google Gemini (Needs Key)">
               <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash (Experimental)</option>
               <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
               <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
               <option value="gemini-1.5-flash-8b">Gemini 1.5 Flash (8B)</option>
             </optgroup>
-            <optgroup label="OpenAI GPT">
+            <optgroup label="OpenAI GPT (Needs Key)">
               <option value="gpt-4o">GPT-4o</option>
               <option value="gpt-4o-mini">GPT-4o Mini</option>
               <option value="gpt-4-turbo">GPT-4 Turbo</option>
               <option value="gpt-4">GPT-4</option>
               <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
             </optgroup>
-            <optgroup label="Anthropic Claude">
+            <optgroup label="Anthropic Claude (Needs Key)">
               <option value="claude-3.7-sonnet">Claude 3.7 Sonnet</option>
               <option value="claude-3.5-sonnet">Claude 3.5 Sonnet</option>
               <option value="claude-3.5-haiku">Claude 3.5 Haiku</option>
               <option value="claude-3-opus">Claude 3 Opus</option>
             </optgroup>
-            <optgroup label="Meta Llama (via Groq)">
+            <optgroup label="Meta Llama via Groq (Needs Key)">
               <option value="llama-3.3-70b">Llama 3.3 70B</option>
               <option value="llama-3.1-70b">Llama 3.1 70B</option>
               <option value="llama-3.1-8b">Llama 3.1 8B</option>
             </optgroup>
-            <optgroup label="Mistral AI">
+            <optgroup label="Mistral AI (Needs Key)">
               <option value="mistral-large">Mistral Large</option>
               <option value="mistral-medium">Mistral Medium</option>
               <option value="mixtral-8x7b">Mixtral 8x7B</option>
             </optgroup>
-            <optgroup label="Cohere">
+            <optgroup label="Cohere (Needs Key)">
               <option value="command-r-plus">Command R+</option>
               <option value="command-r">Command R</option>
             </optgroup>
-            <optgroup label="Other OpenAI-Compatible">
+            <optgroup label="Other (Needs Key)">
               <option value="deepseek-v3">DeepSeek V3</option>
               <option value="qwen-2.5">Qwen 2.5</option>
               <option value="custom">Custom Model</option>
             </optgroup>
           </select>
+          <div class="fs-10 mt-1" style="color: var(--green); font-weight: 600;">✅ Free models work instantly — no API key needed · Via Puter.js + Pollinations + local fallback</div>
         </div>
         
         <div class="ai-sidebar-detail" id="custom-model-input" style="display:none;">
@@ -95,9 +111,9 @@
         </div>
         
         <div class="ai-sidebar-detail">
-          <label class="ai-detail-label">API Key</label>
-          <input type="password" id="ai-api-key" class="ai-select" placeholder="Paste your API key here">
-          <div class="fs-10 text-sub mt-1">Your key is used for this session only and not stored</div>
+          <label class="ai-detail-label">API Key <span id="ai-key-badge" class="fs-9 px-1.5 py-0.5 rounded" style="background: var(--green); color: #fff; display:none;">FREE — not needed</span></label>
+          <input type="password" id="ai-api-key" class="ai-select" placeholder="Paste your API key here (leave empty for Free models)">
+          <div class="fs-10 text-sub mt-1">Free Puter/Pollinations models work with no key. Paid models use your key for this session only — not stored server-side.</div>
         </div>
         
         <div class="ai-sidebar-model-details">
@@ -116,24 +132,39 @@
         </div>
         
         <div class="ai-sidebar-info">
+          <div class="ai-info-item" style="background: rgba(29,163,107,.10); border:1px solid rgba(29,163,107,.25);">
+            <span class="ai-info-icon">🆓</span>
+            <span class="ai-info-text"><b>Free tier:</b> Puter.js offers 400+ models free (User-Pays). Pollinations free backup. Local offline always works. No key needed.</span>
+          </div>
           <div class="ai-info-item">
             <span class="ai-info-icon">📊</span>
-            <span class="ai-info-text">AI adds ~7-12% accuracy improvement</span>
+            <span class="ai-info-text">AI adds ~7-12% accuracy when blended · Confidence-aware vetting</span>
           </div>
           <div class="ai-info-item">
             <span class="ai-info-icon">🔒</span>
-            <span class="ai-info-text">API key is never stored server-side</span>
+            <span class="ai-info-text">API key is never stored server-side · Free models need no key at all</span>
+          </div>
+          <div class="ai-info-item">
+            <span class="ai-info-icon">🧠</span>
+            <span class="ai-info-text"><b>Project-aware:</b> knows lineup, calendar, engine – asks “vet my prediction” to audit</span>
           </div>
         </div>
         </div>
       </div>
       
       <div class="ai-sidebar-section" id="ai-chat-section" style="display:none;">
-        <h3 class="ai-sidebar-section-title">Chat with AI</h3>
+        <h3 class="ai-sidebar-section-title">Chat with AI — Project-Aware + Vets Predictions</h3>
+        <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;">
+          <button class="btn-ghost fs-10" data-chat-preset="Vet my current prediction – is it justified?">🔍 Vet prediction</button>
+          <button class="btn-ghost fs-10" data-chat-preset="Why is the top driver predicted to win here?">🏆 Why winner?</button>
+          <button class="btn-ghost fs-10" data-chat-preset="Explain how the prediction engine works">⚙️ How engine works</button>
+          <button class="btn-ghost fs-10" data-chat-preset="Who is the most undervalued driver?">💎 Upset pick</button>
+          <button class="btn-ghost fs-10" data-chat-preset="What are the wet weather risks for this circuit?">🌧️ Wet risks</button>
+        </div>
         <div class="ai-chat-container">
           <div class="ai-chat-messages" id="ai-chat-messages">
             <div class="ai-chat-message ai-chat-message-ai">
-              <div class="ai-chat-text">Hello! I'm your F1 prediction assistant. Ask me anything about race predictions, driver performance, or strategy!</div>
+              <div class="ai-chat-text">Hello! I'm your <b>project-aware</b> F1 assistant — I know the 22 drivers, 23 races, and the full prediction engine (Grid→Monte Carlo→chaos smoothing).<br><br>Try: <i>“Vet my current prediction”</i> after you run one, or ask anything about F1 strategy. <b>Free models work with no API key</b> — pick Pollinations/Puter above.</div>
             </div>
           </div>
           <div class="ai-chat-input-area">
@@ -141,6 +172,7 @@
             <button id="ai-chat-send" class="ai-chat-send">Send</button>
           </div>
         </div>
+        <div class="fs-10 text-sub mt-2">💡 Tip: Run a prediction first — then click <b>Vet prediction</b> to get instant analysis. Free models run via Puter.js (browser) or Pollinations fallback.</div>
       </div>
       
       <div class="ai-sidebar-footer">
@@ -206,32 +238,52 @@
         </div>
       </div>
 
-      <div class="navy-panel relative overflow-hidden p-5 flex flex-col justify-between text-white" style="min-height:220px">
-        <div class="flex items-center gap-2">
-          <span class="text-lg leading-none">&#127937;</span>
-          <span class="fs-11 uppercase tracking-widest font-semibold" style="color:rgba(255,255,255,.7)">Race weekend status</span>
+      <div class="navy-panel relative overflow-hidden p-5 flex flex-col justify-between text-white" style="min-height:260px; isolation:isolate">
+        <!-- Cinematic video background — Formula One race at dusk -->
+        <video class="navy-panel__video" autoplay muted loop playsinline poster="{{ url_for('static', filename='img/sunset_race.png') }}" aria-hidden="true">
+          <source src="{{ url_for('static', filename='videos/Formula_One_race_at_dusk_1.mp4') }}" type="video/mp4">
+        </video>
+        <div class="navy-panel__overlay" aria-hidden="true"></div>
+        <div class="navy-panel__grain" aria-hidden="true"></div>
+
+        <div class="relative z-10 flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <span class="text-lg leading-none">🏁</span>
+            <span class="fs-11 uppercase tracking-widest font-semibold" style="color:rgba(255,255,255,.85)">Race weekend status</span>
+          </div>
+          <span class="fs-9 px-2 py-1 rounded-full font-bold tracking-widest" style="background:rgba(225,6,0,.9); color:#fff">LIVE TIMING</span>
         </div>
-        <div class="rounded-lg px-3 py-2" style="background:rgba(255,255,255,.06)">
-          <div class="fs-10 uppercase tracking-widest" style="color:rgba(255,255,255,.55)">Next session in</div>
-          <div id="countdown" class="f1-mono text-2xl font-bold tracking-wide">26h 48m 00s</div>
+
+        <div class="relative z-10 rounded-xl px-4 py-3 flex items-center justify-between gap-3" style="background:rgba(0,0,0,.38); backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,.12)">
+          <div>
+            <div class="fs-10 uppercase tracking-widest" style="color:rgba(255,255,255,.65)">Next session in</div>
+            <div id="countdown" class="f1-mono text-2xl font-black tracking-tight" style="letter-spacing:-.04em">—</div>
+            <div id="countdown-sub" class="fs-10 mt-1" style="color:rgba(255,255,255,.62)">Syncing to race calendar…</div>
+          </div>
+          <div class="text-right">
+            <div class="fs-10 uppercase tracking-widest" style="color:rgba(255,255,255,.55)">UTC now</div>
+            <div id="utc-clock" class="f1-mono text-sm font-bold">--:--:--</div>
+            <div id="utc-date" class="fs-9" style="color:rgba(255,255,255,.55)">—</div>
+          </div>
         </div>
-        <div>
-          <div class="fs-10 uppercase tracking-widest" style="color:rgba(255,255,255,.55)">Selected event</div>
+
+        <div class="relative z-10">
+          <div class="fs-10 uppercase tracking-widest" style="color:rgba(255,255,255,.6)">Selected event</div>
           <div id="hero-event-name" class="f1-display text-xl font-bold">No Grand Prix selected</div>
-          <div id="hero-event-circuit" class="fs-11 mt-1" style="color:rgba(255,255,255,.65)">Pick a race to populate this weekend's data</div>
+          <div id="hero-event-circuit" class="fs-11 mt-1" style="color:rgba(255,255,255,.7)">Pick a race to populate this weekend's data</div>
         </div>
-        <div id="hero-facts" class="grid grid-cols-3 gap-2">
-          <div class="rounded-lg p-2 text-center" style="background:rgba(255,255,255,.06)">
-            <div class="fs-9 uppercase tracking-widest" style="color:rgba(255,255,255,.6)">Laps</div>
-            <div class="f1-mono text-sm font-semibold">—</div>
+        <div id="hero-facts" class="relative z-10 grid grid-cols-3 gap-2">
+          <div class="rounded-lg p-2.5 text-center" style="background:rgba(255,255,255,.08); backdrop-filter:blur(6px); border:1px solid rgba(255,255,255,.1)">
+            <div class="fs-9 uppercase tracking-widest" style="color:rgba(255,255,255,.65)">Laps</div>
+            <div class="f1-mono text-sm font-bold">—</div>
           </div>
-          <div class="rounded-lg p-2 text-center" style="background:rgba(157,78,221,.22)">
-            <div class="fs-9 uppercase tracking-widest" style="color:rgba(255,255,255,.6)">DRS zones</div>
-            <div class="f1-mono text-sm font-semibold" style="color:#D9B3F7">—</div>
+          <div class="rounded-lg p-2.5 text-center" style="background:rgba(157,78,221,.22); backdrop-filter:blur(6px); border:1px solid rgba(157,78,221,.35)">
+            <div class="fs-9 uppercase tracking-widest" style="color:rgba(255,255,255,.7)">DRS zones</div>
+            <div class="f1-mono text-sm font-bold" style="color:#D9B3F7">—</div>
           </div>
-          <div class="rounded-lg p-2 text-center" style="background:rgba(255,255,255,.06)">
-            <div class="fs-9 uppercase tracking-widest" style="color:rgba(255,255,255,.6)">Overtaking</div>
-            <div class="f1-mono text-sm font-semibold">—</div>
+          <div class="rounded-lg p-2.5 text-center" style="background:rgba(255,255,255,.08); backdrop-filter:blur(6px); border:1px solid rgba(255,255,255,.1)">
+            <div class="fs-9 uppercase tracking-widest" style="color:rgba(255,255,255,.65)">Overtaking</div>
+            <div class="f1-mono text-sm font-bold">—</div>
           </div>
         </div>
       </div>
@@ -248,7 +300,54 @@
   <div id="session-cards" class="grid grid-cols-1 sm:grid-cols-3 gap-2.5"></div>
 </section>
 
-<!-- CONTROL BAR -->
+<!-- GRID MODE — own row above Run Prediction: Auto-fetched vs Manual (22 dropdowns, 11 per row) -->
+<section id="grid-mode-section" class="px-4 sm:px-8 py-3">
+  <div class="card p-4" style="border:1px solid var(--border)">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+      <div class="flex items-center gap-2">
+        <span class="w-8 h-8 rounded-md grid place-items-center text-white" style="background:var(--navy)"><span style="font-size:10px; font-weight:900">P1-P22</span></span>
+        <div>
+          <div class="f1-display font-black text-sm">Starting Grid</div>
+          <div class="fs-11 text-sub">Choose how the grid is set. <b>Auto-fetched</b> uses live qualifying; <b>Manual</b> lets you set each P slot. P1-P10 drives the prediction.</div>
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button id="grid-mode-auto" class="text-xs font-black px-4 py-2 rounded-full" style="background:var(--navy); color:#fff; border:1px solid var(--navy)">Auto-fetched Grid</button>
+        <button id="grid-mode-manual" class="text-xs font-black px-4 py-2 rounded-full" style="background:var(--surface); color:var(--text); border:1px solid var(--border)">Manual Grid</button>
+      </div>
+    </div>
+
+    <!-- Auto pane: shows auto-fill status + collapsible drop to see grid -->
+    <div id="grid-auto-pane">
+      <div id="auto-grid-status" class="fs-11 p-3 rounded-lg surface-alt" style="border:1px solid var(--border)">
+        <span class="fs-11 text-sub">Select a Grand Prix above. Auto grid will be fetched from live qualifying when you choose Auto-fetched.</span>
+      </div>
+      <button id="auto-grid-toggle" class="fs-11 font-semibold mt-2 px-3 py-1 rounded" style="background:var(--surface-alt); border:1px solid var(--border); display:none">Show auto-filled grid ▾</button>
+      <div id="auto-grid-display" class="mt-3" style="display:none">
+        <div class="fs-10 font-black tracking-widest mb-2" style="color:var(--muted)">Auto-fetched grid preview (P1→P22)</div>
+        <div id="auto-grid-readonly" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-11 gap-1.5"></div>
+      </div>
+    </div>
+
+    <!-- Manual pane: 22 dropdowns, 11 per row (2 rows) -->
+    <div id="grid-manual-pane" style="display:none">
+      <div class="flex flex-wrap gap-2 mb-3">
+        <button id="manual-grid-clear" class="btn-ghost text-xs">Clear All P Slots</button>
+        <button id="manual-grid-autofill" class="btn-ghost text-xs">Auto-fill P1→P22 (by Form)</button>
+        <button id="manual-grid-reverse" class="btn-ghost text-xs">Reverse P1↔P22</button>
+        <span class="fs-10 text-muted" style="align-self:center">Each P is one grid position. Picks are unique — same driver cannot be in two Ps.</span>
+      </div>
+      <div id="manual-grid-dropdowns" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-11 gap-2"></div>
+      <div id="manual-grid-error" class="fs-11 mt-2" style="color:var(--red); display:none"></div>
+      <div class="flex items-center gap-2 mt-3">
+        <span id="manual-grid-status" class="fs-10 font-bold px-2 py-1 rounded" style="background:var(--surface-alt); border:1px solid var(--border); color:var(--sub)">— empty (auto grid will be used)</span>
+        <span id="manual-grid-summary" class="fs-11 text-sub"></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTROL BAR — Grand Prix / Weather / Simulations / Session + green Run Prediction -->
 <section class="px-4 sm:px-8 py-4">
   <div class="card p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
     <div>
@@ -276,14 +375,14 @@
       <div class="fs-10 uppercase tracking-widest font-semibold mb-1 text-sub">Session Type</div>
       <select id="cb-sub-session" class="f1-select"></select>
     </div>
-    <button id="run-btn" class="btn-primary text-sm uppercase tracking-wide flex items-center justify-center gap-2" style="display:block">
+    <button id="run-btn" class="text-sm uppercase tracking-wide flex items-center justify-center gap-2" style="display:block; background:var(--green); color:#fff; border-radius:.5rem; padding:.6rem 1.1rem; font-weight:700; transition: background-color .15s ease, transform .1s ease">
       <span id="run-btn-label">Run Prediction</span>
     </button>
   </div>
   <div id="run-progress" class="h-1 rounded-full overflow-hidden mt-2" style="background:var(--border);display:none">
-    <div class="h-full" style="background:var(--red);width:40%"></div>
+    <div class="h-full" style="background:var(--green);width:40%"></div>
   </div>
-  <div id="run-hint" class="fs-11 mt-2 text-muted">Select a Grand Prix above to enable the prediction engine.</div>
+  <div id="run-hint" class="fs-11 mt-2 text-muted">Select a Grand Prix above to enable the prediction engine. Your chosen grid (Auto or Manual P1-P10) drives the prediction.</div>
 </section>
 
 <!-- INFO CARDS -->

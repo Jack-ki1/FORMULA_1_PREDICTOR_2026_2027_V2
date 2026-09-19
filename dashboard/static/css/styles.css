@@ -340,11 +340,37 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
 .gauge-value .num { font-family: 'IBM Plex Mono', monospace; font-weight: 700; font-size: 28px; color: var(--text); }
 .gauge-value .lbl { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--sub); }
 
-/* ---- Track Conditions (navy hero widget) ---- */
+/* ---- Track Conditions (navy hero widget) — cinematic video background ---- */
 .navy-panel {
   background: linear-gradient(135deg, var(--navy), var(--navy-light));
   color: #fff;
   border-radius: .75rem;
+  border: 1px solid rgba(255,255,255,.08);
+}
+.navy-panel__video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 35%;
+  opacity: 0.42;
+  filter: saturate(1.15) contrast(1.1) brightness(0.85);
+}
+.navy-panel__overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(225,6,0,.28), transparent 55%),
+    linear-gradient(180deg, rgba(10,14,22,.78) 0%, rgba(10,14,22,.55) 45%, rgba(10,14,22,.88) 100%);
+}
+.navy-panel__grain {
+  position: absolute;
+  inset: 0;
+  opacity: .08;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+  mix-blend-mode: soft-light;
 }
 
 /* ---- Session cards ---- */
@@ -1088,6 +1114,12 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
     cursor: pointer;
     transition: all 0.2s;
 }
+
+#run-btn { background: var(--green) !important; color:#fff; border:none; }
+#run-btn:hover:not(:disabled) { background: #158a57 !important; transform: translateY(-1px); }
+#run-btn:disabled { opacity:.45; cursor:not-allowed; transform:none; }
+#run-btn:active:not(:disabled) { transform: scale(.98); }
+#manual-grid-dropdowns select.is-duplicate { border-color: var(--amber); background: #fff7ed; }
 
 .btn-primary {
     background: var(--primary);

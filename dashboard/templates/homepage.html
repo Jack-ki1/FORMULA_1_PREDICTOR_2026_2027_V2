@@ -70,7 +70,7 @@
                 </button>
 
                 <a href="#" class="hidden sm:inline-flex items-center gap-2 rounded-full bg-[var(--text)] text-[var(--bg)] px-4 py-2.5 text-xs font-black hover:opacity-90 transition">
-                    Sign In
+                    TRY IT
                     <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
                 </a>
 
@@ -151,9 +151,9 @@
             <div class="hero-film-caption">race film / 16:9 / motion study</div>
         </div>
 
-        <div class="container w-full py-24 lg:py-28">
+        <div class="container w-full py-16 lg:py-20">
             <div class="max-w-5xl reveal">
-                <div class="flex flex-wrap items-center gap-3 mb-8">
+                <div class="flex flex-wrap items-center gap-3 mb-6">
                     <span class="inline-flex items-center gap-2 rounded-full border border-[var(--accent)]/35 bg-black/20 backdrop-blur px-3 py-1.5 text-[9px] font-black uppercase tracking-[.16em]">
                         <span class="w-1.5 h-1.5 rounded-full bg-f1red pulse"></span>
                         Race intelligence platform
@@ -161,17 +161,17 @@
                     <span class="kicker !text-white/50">From data to decision</span>
                 </div>
 
-                <h1 class="display text-[clamp(4.8rem,11vw,10rem)] leading-[.75] max-w-6xl">
+                <h1 class="display text-[clamp(3rem,7vw,5.6rem)] leading-[.82] max-w-4xl">
                     DON’T JUST<br>
                     WATCH THE<br>
                     <span class="text-f1red">RACE.</span>
                 </h1>
 
-                <p class="max-w-2xl mt-10 text-lg sm:text-xl leading-relaxed text-white/65">
+                <p class="max-w-xl mt-7 text-base sm:text-lg leading-relaxed text-white/65">
                     See the race differently. Turn pace, form, strategy, tyre behaviour and circuit DNA into a prediction you can explain.
                 </p>
 
-                <div class="mt-9 flex flex-wrap gap-3">
+                <div class="mt-8 flex flex-wrap gap-3">
                     <a href="/dashboard/" class="magnetic inline-flex items-center gap-3 px-6 py-3.5 rounded-full bg-f1red text-white text-sm font-black shadow-[0_16px_50px_rgba(225,6,0,.3)]">
                         Enter the cockpit
                         <span class="w-6 h-6 rounded-full bg-white/15 grid place-items-center"><i class="fa-solid fa-arrow-right text-[10px]"></i></span>
@@ -207,29 +207,29 @@
     </div>
 
     <!-- RACE WEEKEND: NOT A STANDARD CARD GRID -->
-    <section id="race-weekend" class="py-24 lg:py-32 relative">
+    <section id="race-weekend" class="py-16 lg:py-20 relative">
         <div class="absolute inset-x-0 top-0 redline"></div>
         <div class="container">
 
-            <div class="grid lg:grid-cols-[.8fr_1.2fr] gap-14 items-end reveal">
+            <div class="grid lg:grid-cols-[.8fr_1.2fr] gap-8 items-end reveal">
                 <div>
                     <div class="kicker">01 / Race weekend</div>
-                    <h2 class="display text-[clamp(3.5rem,8vw,7rem)] leading-[.82] mt-5">
+                    <h2 class="display text-[clamp(2.1rem,4.4vw,3.5rem)] leading-[.9] mt-4">
                         THE<br><span class="text-f1red">WEEKEND.</span>
                     </h2>
                 </div>
 
                 <div class="max-w-xl lg:justify-self-end">
-                    <p class="text-lg leading-relaxed muted">
+                    <p class="text-base leading-relaxed muted">
                         Think like the pit wall, not the scoreboard. A race is a sequence of changing conditions. This view makes the storyline visible from Thursday through Sunday.
                     </p>
                 </div>
             </div>
 
-            <div class="mt-14 grid lg:grid-cols-12 gap-5 stagger">
+            <div class="mt-10 grid lg:grid-cols-12 gap-5 stagger">
 
                 <article class="lg:col-span-8 panel rounded-[30px] overflow-hidden panel-hover">
-                    <div class="relative h-[430px] sm:h-[520px] image-card">
+                    <div class="relative h-[340px] sm:h-[400px] image-card">
                         <img
                             src="{{ url_for('static', filename='img/f1_cartoon.png') }}"
                             alt="Formula 1 inspired race circuit scene"
@@ -248,7 +248,7 @@
 
                         <div class="absolute left-0 right-0 bottom-0 p-6 sm:p-8">
                             <div class="kicker !text-white/55">Round 12 · Zandvoort</div>
-                            <h3 class="display text-4xl sm:text-6xl text-white mt-2">FAST. NARROW. UNFORGIVING.</h3>
+                            <h3 class="display text-2xl sm:text-4xl text-white mt-2">FAST. NARROW. UNFORGIVING.</h3>
                             <p class="max-w-xl text-white/65 text-sm sm:text-base mt-3">
                                 High-speed commitment, evolving grip and very little room to hide a weak setup.
                             </p>
@@ -261,7 +261,7 @@
                         <div class="flex items-center justify-between">
                             <div>
                                 <div class="kicker">Weekend pulse</div>
-                                <h3 class="font-display font-black text-2xl mt-2">SESSION RHYTHM</h3>
+                                <h3 class="font-display font-black text-lg mt-2">SESSION RHYTHM</h3>
                             </div>
                             <div class="w-10 h-10 rounded-xl bg-f1red text-white grid place-items-center">
                                 <i class="fa-solid fa-bolt"></i>
@@ -305,26 +305,26 @@
     </section>
 
     <!-- "GARAGE WALL": ANALYTICS WITH IMAGE + DATA -->
-    <section id="garage" class="py-24 bg-[var(--surface-2)] border-y border-[var(--line)] overflow-hidden">
+    <section id="garage" class="py-16 bg-[var(--surface-2)] border-y border-[var(--line)] overflow-hidden">
         <div class="container">
 
-            <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-7 reveal">
+            <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-5 reveal">
                 <div>
                     <div class="kicker">02 / Garage wall</div>
-                    <h2 class="display text-[clamp(3.3rem,7vw,6.7rem)] leading-[.82] mt-5">
+                    <h2 class="display text-[clamp(2rem,4.2vw,3.3rem)] leading-[.9] mt-4">
                         INSIGHT<br><span class="text-f1red">WITHOUT NOISE.</span>
                     </h2>
                 </div>
 
-                <p class="max-w-xl text-base sm:text-lg leading-relaxed muted">
+                <p class="max-w-xl text-sm sm:text-base leading-relaxed muted">
                     The visual language deliberately borrows from race engineering: dense when needed, quiet everywhere else. Numbers have hierarchy. Alerts have meaning. The eye gets the right information first.
                 </p>
             </div>
 
-            <div class="mt-14 grid lg:grid-cols-12 gap-5 stagger">
+            <div class="mt-10 grid lg:grid-cols-12 gap-5 stagger">
 
                 <!-- IMAGE / DRIVER -->
-                <article class="lg:col-span-4 rounded-[30px] overflow-hidden relative image-card min-h-[480px] panel">
+                <article class="lg:col-span-4 rounded-[30px] overflow-hidden relative image-card min-h-[360px] panel">
                     <img
                         src="{{ url_for('static', filename='img/p3.png') }}"
                         alt="Driver portrait placeholder"
@@ -336,18 +336,18 @@
 
                     <div class="absolute top-5 left-5">
                         <div class="kicker !text-white/55">Driver profile</div>
-                        <div class="font-display font-black text-2xl mt-1 text-white">01 / MAX</div>
+                        <div class="font-display font-black text-lg mt-1 text-white">01 / MAX</div>
                     </div>
 
                     <div class="absolute bottom-0 left-0 right-0 p-6">
                         <div class="flex items-end justify-between">
                             <div>
                                 <div class="text-xs uppercase tracking-[.18em] text-white/50">Projected</div>
-                                <div class="display text-5xl text-white mt-1">P1</div>
+                                <div class="display text-3xl text-white mt-1">P1</div>
                             </div>
 
                             <div class="text-right">
-                                <div class="display text-4xl text-f1red">9.4</div>
+                                <div class="display text-2xl text-f1red">9.4</div>
                                 <div class="kicker !text-white/50 mt-1" style="font-size:7px">form index</div>
                             </div>
                         </div>
@@ -366,7 +366,7 @@
                     <div class="flex items-start justify-between">
                         <div>
                             <div class="kicker">Circuit DNA</div>
-                            <h3 class="font-display font-black text-2xl mt-2">PERFORMANCE RADAR</h3>
+                            <h3 class="font-display font-black text-lg mt-2">PERFORMANCE RADAR</h3>
                         </div>
                         <span class="mono text-[9px] text-[var(--muted)]">ZND-26</span>
                     </div>
@@ -402,7 +402,7 @@
                         <div class="absolute inset-0 grid place-items-center">
                             <div class="text-center">
                                 <div class="kicker" style="font-size:7px">Track fit</div>
-                                <div class="metric text-4xl mt-2">9.1</div>
+                                <div class="metric text-3xl mt-2">9.1</div>
                             </div>
                         </div>
                     </div>
@@ -417,7 +417,7 @@
                     <div class="flex items-start justify-between">
                         <div>
                             <div class="kicker">Strategy board</div>
-                            <h3 class="font-display font-black text-2xl mt-2">TYRE WINDOWS</h3>
+                            <h3 class="font-display font-black text-lg mt-2">TYRE WINDOWS</h3>
                         </div>
                         <i class="fa-solid fa-layer-group text-f1red"></i>
                     </div>
@@ -470,27 +470,27 @@
     </section>
 
     <!-- VIDEO WALL -->
-    <section id="media" class="py-24 lg:py-32">
+    <section id="media" class="py-16 lg:py-20">
         <div class="container">
 
-            <div class="grid lg:grid-cols-[.65fr_1.35fr] gap-12 items-end reveal">
+            <div class="grid lg:grid-cols-[.65fr_1.35fr] gap-8 items-end reveal">
                 <div>
                     <div class="kicker">03 / Media wall</div>
-                    <h2 class="display text-[clamp(3.3rem,7vw,6.6rem)] leading-[.82] mt-5">
+                    <h2 class="display text-[clamp(2rem,4.2vw,3.3rem)] leading-[.9] mt-4">
                         SEE THE<br><span class="text-f1red">SPEED.</span>
                     </h2>
                 </div>
 
                 <div class="max-w-2xl">
-                    <p class="text-lg leading-relaxed muted">
+                    <p class="text-base leading-relaxed muted">
                         Prediction is not only numbers. Give the race atmosphere, motion and visual context — from pit lane theatre to the geometry of a circuit.
                     </p>
                 </div>
             </div>
 
-            <div class="mt-14 grid lg:grid-cols-12 gap-5 stagger">
+            <div class="mt-10 grid lg:grid-cols-12 gap-5 stagger">
 
-                <article class="lg:col-span-8 video-card relative rounded-[30px] overflow-hidden min-h-[500px] bg-black group">
+                <article class="lg:col-span-8 video-card relative rounded-[30px] overflow-hidden min-h-[400px] bg-black group">
                     <div class="media-controls">
                         <button class="media-control video-toggle" aria-label="Pause video"><i class="fa-solid fa-pause"></i></button>
                         <button class="media-control video-mute" aria-label="Unmute video"><i class="fa-solid fa-volume-xmark"></i></button>
@@ -512,7 +512,7 @@
 
                     <div class="absolute left-0 right-0 bottom-0 p-6 sm:p-8">
                         <div class="kicker !text-white/55">Featured video</div>
-                        <h3 class="display text-4xl sm:text-6xl text-white mt-2">RACE AFTER DARK.</h3>
+                        <h3 class="display text-2xl sm:text-4xl text-white mt-2">RACE AFTER DARK.</h3>
                         <p class="max-w-xl text-sm sm:text-base text-white/65 mt-3">
                             Replace the placeholder with your own race-film asset, YouTube embed or backend-powered media source.
                         </p>
@@ -521,25 +521,25 @@
 
                 <div class="lg:col-span-4 grid grid-rows-2 gap-5">
 
-                    <article class="video-card rounded-[30px] overflow-hidden relative min-h-[240px] group">
+                    <article class="video-card rounded-[30px] overflow-hidden relative min-h-[190px] group">
                         <video data-video="feature" class="absolute inset-0 w-full h-full object-cover" autoplay muted loop playsinline poster="{{ url_for('static', filename='img/f1_image.png') }}">
                             <source src="{{ url_for('static', filename='videos/Formula_One_race_at_dusk_1.mp4') }}" type="video/mp4">
                         </video>
                         <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent"></div>
                         <div class="absolute left-5 right-5 bottom-5">
                             <div class="kicker !text-white/55">Track character</div>
-                            <h3 class="font-display font-black text-2xl text-white mt-1">THE CORNER ENTRY.</h3>
+                            <h3 class="font-display font-black text-lg text-white mt-1">THE CORNER ENTRY.</h3>
                         </div>
                     </article>
 
-                    <article class="video-card rounded-[30px] overflow-hidden relative min-h-[240px] group">
+                    <article class="video-card rounded-[30px] overflow-hidden relative min-h-[190px] group">
                         <video data-video="feature" class="absolute inset-0 w-full h-full object-cover" autoplay muted loop playsinline poster="{{ url_for('static', filename='img/f1_image.png') }}">
                             <source src="{{ url_for('static', filename='videos/F1_monaco.mp4') }}" type="video/mp4">
                         </video>
                         <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent"></div>
                         <div class="absolute left-5 right-5 bottom-5">
                             <div class="kicker !text-white/55">Pit lane</div>
-                            <h3 class="font-display font-black text-2xl text-white mt-1">TWO SECONDS.</h3>
+                            <h3 class="font-display font-black text-lg text-white mt-1">TWO SECONDS.</h3>
                         </div>
                     </article>
 
@@ -549,13 +549,13 @@
     </section>
 
     <!-- IMAGE EDITORIAL GRID -->
-    <section class="py-24 bg-[var(--surface-2)] border-y border-[var(--line)]">
+    <section class="py-16 bg-[var(--surface-2)] border-y border-[var(--line)]">
         <div class="container">
 
             <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-8 reveal">
                 <div>
                     <div class="kicker">04 / Image archive</div>
-                    <h2 class="display text-[clamp(3.2rem,7vw,6.4rem)] leading-[.82] mt-5">
+                    <h2 class="display text-[clamp(1.95rem,4.1vw,3.2rem)] leading-[.9] mt-4">
                         THE<br><span class="text-f1red">PADDOCK.</span>
                     </h2>
                 </div>
@@ -566,9 +566,9 @@
                 </a>
             </div>
 
-            <div class="mt-14 grid md:grid-cols-2 lg:grid-cols-12 gap-5 stagger">
+            <div class="mt-10 grid md:grid-cols-2 lg:grid-cols-12 gap-5 stagger">
 
-                <article class="lg:col-span-5 image-card rounded-[30px] overflow-hidden min-h-[480px] relative panel">
+                <article class="lg:col-span-5 image-card rounded-[30px] overflow-hidden min-h-[380px] relative panel">
                     <img src="{{ url_for('static', filename='img/pit_stop.jpg') }}"
                          alt="F1 strategy team at a pit wall"
                          class="absolute inset-0 w-full h-full object-cover"
@@ -579,12 +579,12 @@
                     </div>
                     <div class="absolute left-0 right-0 bottom-0 p-6">
                         <div class="kicker !text-white/50">Strategy / data / decisions</div>
-                        <h3 class="font-display font-black text-3xl text-white mt-2">THE OTHER RACE.</h3>
+                        <h3 class="font-display font-black text-2xl text-white mt-2">THE OTHER RACE.</h3>
                         <p class="text-white/60 text-sm mt-2">The people making the call before the car reaches the braking zone.</p>
                     </div>
                 </article>
 
-                <article class="lg:col-span-7 image-card rounded-[30px] overflow-hidden relative min-h-[480px] panel">
+                <article class="lg:col-span-7 image-card rounded-[30px] overflow-hidden relative min-h-[380px] panel">
                     <img src="{{ url_for('static', filename='img/circuit1.png') }}"
                          alt="Aerial view of a Formula 1 circuit"
                          class="absolute inset-0 w-full h-full object-cover"
@@ -599,7 +599,7 @@
                     <div class="absolute right-6 top-24 hidden sm:block">
                         <div class="glass rounded-2xl p-4 w-48 text-white">
                             <div class="kicker !text-white/50">Track map intelligence</div>
-                            <div class="font-display font-black text-2xl mt-2">3 SECTORS</div>
+                            <div class="font-display font-black text-lg mt-2">3 SECTORS</div>
                             <div class="grid grid-cols-3 gap-1 mt-3">
                                 <div class="h-1.5 rounded-full bg-f1red"></div>
                                 <div class="h-1.5 rounded-full bg-white/30"></div>
@@ -610,23 +610,23 @@
 
                     <div class="absolute left-0 right-0 bottom-0 p-6 sm:p-8">
                         <div class="kicker !text-white/50">Circuit as data</div>
-                        <h3 class="display text-4xl sm:text-6xl text-white mt-2">EVERY CURVE HAS A STORY.</h3>
+                        <h3 class="display text-2xl sm:text-4xl text-white mt-2">EVERY CURVE HAS A STORY.</h3>
                     </div>
                 </article>
 
             </div>
 
             <div class="mt-5 grid grid-cols-2 lg:grid-cols-4 gap-5 stagger">
-                <article class="image-card rounded-[24px] overflow-hidden h-64 relative">
+                <article class="image-card rounded-[24px] overflow-hidden h-48 relative">
                     <img src="{{ url_for('static', filename='img/night_race.png') }}" alt="Race track scene" class="absolute inset-0 w-full h-full object-cover" loading="lazy">
                     <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
                     <div class="absolute left-4 bottom-4 text-white">
                         <div class="kicker !text-white/45" style="font-size:7px">01</div>
-                        <div class="font-display font-black text-xl">APEX</div>
+                        <div class="font-display font-black text-base">APEX</div>
                     </div>
                 </article>
 
-                <article class="image-card rounded-[24px] overflow-hidden h-64 relative">
+                <article class="image-card rounded-[24px] overflow-hidden h-48 relative">
                     <img src="{{ url_for('static', filename='img/sunset_race.png') }}" alt="Motorsport inspired detail" class="absolute inset-0 w-full h-full object-cover" loading="lazy">
                     <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
                     <div class="absolute left-4 bottom-4 text-white">
@@ -635,7 +635,7 @@
                     </div>
                 </article>
 
-                <article class="image-card rounded-[24px] overflow-hidden h-64 relative">
+                <article class="image-card rounded-[24px] overflow-hidden h-48 relative">
                     <img src="{{ url_for('static', filename='img/car_parts.png') }}" alt="Performance car detail" class="absolute inset-0 w-full h-full object-cover" loading="lazy">
                     <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
                     <div class="absolute left-4 bottom-4 text-white">
@@ -644,7 +644,7 @@
                     </div>
                 </article>
 
-                <article class="image-card rounded-[24px] overflow-hidden h-64 relative">
+                <article class="image-card rounded-[24px] overflow-hidden h-48 relative">
                     <img src="{{ url_for('static', filename='img/p1.png') }}" alt="High performance automotive detail" class="absolute inset-0 w-full h-full object-cover" loading="lazy">
                     <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
                     <div class="absolute left-4 bottom-4 text-white">
@@ -658,19 +658,19 @@
     </section>
 
     <!-- DRIVER DUEL -->
-    <section id="duel" class="py-24 lg:py-32">
+    <section id="duel" class="py-16 lg:py-20">
         <div class="container">
 
-            <div class="grid lg:grid-cols-[.8fr_1.2fr] gap-12 items-end reveal">
+            <div class="grid lg:grid-cols-[.8fr_1.2fr] gap-8 items-end reveal">
                 <div>
                     <div class="kicker">05 / Head to head</div>
-                    <h2 class="display text-[clamp(3.2rem,7vw,6.4rem)] leading-[.82] mt-5">
+                    <h2 class="display text-[clamp(1.95rem,4.1vw,3.2rem)] leading-[.9] mt-4">
                         DUEL<br><span class="text-f1red">THE DATA.</span>
                     </h2>
                 </div>
 
                 <div class="max-w-xl lg:justify-self-end">
-                    <p class="text-lg leading-relaxed muted">
+                    <p class="text-base leading-relaxed muted">
                         A comparison surface designed like a fight poster: two drivers, five measurable dimensions, one clean read.
                     </p>
                     <a href="/h2h" class="inline-flex items-center gap-3 mt-6 text-xs font-black uppercase tracking-[.14em]">
@@ -680,12 +680,12 @@
                 </div>
             </div>
 
-            <div class="mt-14 panel rounded-[32px] overflow-hidden reveal">
+            <div class="mt-10 panel rounded-[32px] overflow-hidden reveal">
                 <div class="grid lg:grid-cols-[1fr_1.2fr_1fr]">
 
-                    <div class="p-7 sm:p-9 bg-gradient-to-b from-[#1118a8]/25 to-transparent">
+                    <div class="p-6 sm:p-7 bg-gradient-to-b from-[#1118a8]/25 to-transparent">
                         <div class="kicker">Driver A</div>
-                        <div class="font-display font-black text-4xl mt-3">MAX</div>
+                        <div class="font-display font-black text-2xl mt-2">MAX</div>
                         <div class="text-xs muted mt-1">Red Bull Racing · #1</div>
 
                         <div class="mt-9 space-y-4">
@@ -700,13 +700,13 @@
                         </div>
                     </div>
 
-                    <div class="relative p-7 sm:p-9 border-y lg:border-y-0 lg:border-x border-[var(--line)]">
+                    <div class="relative p-6 sm:p-7 border-y lg:border-y-0 lg:border-x border-[var(--line)]">
                         <div class="absolute top-4 left-4 right-4 flex justify-between mono text-[8px] uppercase tracking-[.13em] text-[var(--muted-2)]">
                             <span>H2H MODEL</span>
                             <span>0.8s window</span>
                         </div>
 
-                        <div class="min-h-[290px] grid place-items-center">
+                        <div class="min-h-[230px] grid place-items-center">
                             <div class="relative w-full max-w-[430px]">
 
                                 <div class="flex items-center justify-between text-[9px] uppercase tracking-[.14em] text-[var(--muted)] mb-2">
@@ -720,8 +720,8 @@
                                 </div>
 
                                 <div class="flex justify-between mt-3">
-                                    <div class="font-display font-black text-4xl">59%</div>
-                                    <div class="font-display font-black text-4xl">41%</div>
+                                    <div class="font-display font-black text-2xl">59%</div>
+                                    <div class="font-display font-black text-2xl">41%</div>
                                 </div>
 
                                 <div class="mt-10 grid grid-cols-5 gap-2">
@@ -755,9 +755,9 @@
                         </div>
                     </div>
 
-                    <div class="p-7 sm:p-9 bg-gradient-to-b from-[#ff8700]/20 to-transparent">
+                    <div class="p-6 sm:p-7 bg-gradient-to-b from-[#ff8700]/20 to-transparent">
                         <div class="kicker">Driver B</div>
-                        <div class="font-display font-black text-4xl mt-3">LANDO</div>
+                        <div class="font-display font-black text-2xl mt-2">LANDO</div>
                         <div class="text-xs muted mt-1">McLaren · #4</div>
 
                         <div class="mt-9 space-y-4">
@@ -778,13 +778,13 @@
     </section>
 
     <!-- CIRCUIT / IMAGE-LED FEATURE -->
-    <section id="circuit" class="py-24 bg-[var(--surface-2)] border-y border-[var(--line)]">
+    <section id="circuit" class="py-16 bg-[var(--surface-2)] border-y border-[var(--line)]">
         <div class="container">
 
-            <div class="grid lg:grid-cols-[.58fr_1.42fr] gap-14 items-center reveal">
+            <div class="grid lg:grid-cols-[.58fr_1.42fr] gap-10 items-center reveal">
                 <div>
                     <div class="kicker">06 / Circuit intelligence</div>
-                    <h2 class="display text-[clamp(3.2rem,7vw,6.4rem)] leading-[.82] mt-5">
+                    <h2 class="display text-[clamp(1.95rem,4.1vw,3.2rem)] leading-[.9] mt-4">
                         TRACE<br><span class="text-f1red">THE LINE.</span>
                     </h2>
 
@@ -795,11 +795,11 @@
                     <div class="mt-8 grid grid-cols-2 gap-3 max-w-md">
                         <div class="rounded-2xl border border-[var(--line)] p-4">
                             <div class="kicker" style="font-size:7px">Circuit length</div>
-                            <div class="font-display font-black text-2xl mt-2">4.259 <span class="text-[9px] muted">KM</span></div>
+                            <div class="font-display font-black text-lg mt-2">4.259 <span class="text-[9px] muted">KM</span></div>
                         </div>
                         <div class="rounded-2xl border border-[var(--line)] p-4">
                             <div class="kicker" style="font-size:7px">Race distance</div>
-                            <div class="font-display font-black text-2xl mt-2">306.648 <span class="text-[9px] muted">KM</span></div>
+                            <div class="font-display font-black text-lg mt-2">306.648 <span class="text-[9px] muted">KM</span></div>
                         </div>
                     </div>
 
@@ -809,7 +809,7 @@
                     </a>
                 </div>
 
-                <div class="relative rounded-[32px] overflow-hidden border border-[var(--line)] min-h-[450px] image-card panel">
+                <div class="relative rounded-[32px] overflow-hidden border border-[var(--line)] min-h-[360px] image-card panel">
                     <img
                         id="trackImage"
                         src="{{ url_for('static', filename='img/podium_all.png') }}"
@@ -834,14 +834,14 @@
                     <div class="absolute right-5 top-1/2 -translate-y-1/2 hidden md:block">
                         <div class="glass rounded-2xl p-4 w-48 text-white">
                             <div class="kicker !text-white/45">Track character</div>
-                            <div class="font-display font-black text-2xl mt-2">OLD-SCHOOL</div>
+                            <div class="font-display font-black text-lg mt-2">OLD-SCHOOL</div>
                             <div class="text-[10px] text-white/50 mt-2 leading-relaxed">Fast, narrow and undulating, with banked corners that shape overtaking and setup choices.</div>
                         </div>
                     </div>
 
                     <div class="absolute left-0 right-0 bottom-0 p-6 sm:p-8">
                         <div class="kicker !text-white/55">Zandvoort / Netherlands</div>
-                        <h3 class="display text-4xl sm:text-6xl text-white mt-2">THE CIRCUIT IS THE STORY.</h3>
+                        <h3 class="display text-2xl sm:text-4xl text-white mt-2">THE CIRCUIT IS THE STORY.</h3>
                         <p class="text-white/60 text-sm mt-3 max-w-2xl">
                             Aerial imagery sourced from Wikimedia Commons; the live F1 information page confirms Zandvoort as the Dutch Grand Prix circuit and lists its 4.259 km length and 72 laps. citeturn500580search0turn641100search11
                         </p>
@@ -853,13 +853,13 @@
     </section>
 
     <!-- LATEST CONTENT / CARDS -->
-    <section class="py-24 lg:py-32">
+    <section class="py-16 lg:py-20">
         <div class="container">
 
             <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-7 reveal">
                 <div>
                     <div class="kicker">07 / Intelligence feed</div>
-                    <h2 class="display text-[clamp(3.1rem,6.5vw,6.1rem)] leading-[.82] mt-5">
+                    <h2 class="display text-[clamp(1.9rem,4vw,3.1rem)] leading-[.9] mt-4">
                         KEEP<br><span class="text-f1red">PACE.</span>
                     </h2>
                 </div>
@@ -869,39 +869,39 @@
                 </a>
             </div>
 
-            <div class="mt-14 grid md:grid-cols-2 lg:grid-cols-3 gap-5 stagger">
+            <div class="mt-10 grid md:grid-cols-2 lg:grid-cols-3 gap-5 stagger">
 
                 <article class="panel rounded-[28px] overflow-hidden panel-hover">
-                    <div class="h-52 image-card">
+                    <div class="h-40 image-card">
                         <img src="{{ url_for('static', filename='img/racer2.png') }}" alt="Performance vehicle detail" class="w-full h-full object-cover" loading="lazy">
                     </div>
                     <div class="p-6">
                         <div class="kicker">Strategy note</div>
-                        <h3 class="font-display font-black text-2xl mt-2">WHY PACE DOESN’T TELL THE WHOLE STORY.</h3>
+                        <h3 class="font-display font-black text-lg mt-2">WHY PACE DOESN’T TELL THE WHOLE STORY.</h3>
                         <p class="text-sm muted leading-relaxed mt-3">A fast car can still lose a race when the tyre and traffic picture turns against it.</p>
                         <a href="/dashboard/" class="inline-flex gap-2 items-center mt-5 text-xs font-bold">View analysis <i class="fa-solid fa-arrow-right text-f1red"></i></a>
                     </div>
                 </article>
 
                 <article class="panel rounded-[28px] overflow-hidden panel-hover">
-                    <div class="h-52 image-card">
+                    <div class="h-40 image-card">
                         <img src="{{ url_for('static', filename='img/circuit2.png') }}" alt="High performance car" class="w-full h-full object-cover" loading="lazy">
                     </div>
                     <div class="p-6">
                         <div class="kicker">Analytics</div>
-                        <h3 class="font-display font-black text-2xl mt-2">THE CIRCUIT IS A VARIABLE.</h3>
+                        <h3 class="font-display font-black text-lg mt-2">THE CIRCUIT IS A VARIABLE.</h3>
                         <p class="text-sm muted leading-relaxed mt-3">Every track changes which strengths are amplified and which weaknesses become visible.</p>
                         <a href="/dashboard/" class="inline-flex gap-2 items-center mt-5 text-xs font-bold">Explore analysis <i class="fa-solid fa-arrow-right text-f1red"></i></a>
                     </div>
                 </article>
 
                 <article class="panel rounded-[28px] overflow-hidden panel-hover">
-                    <div class="h-52 image-card">
+                    <div class="h-40 image-card">
                         <img src="{{ url_for('static', filename='img/racer3.png') }}" alt="Automotive performance scene" class="w-full h-full object-cover" loading="lazy">
                     </div>
                     <div class="p-6">
                         <div class="kicker">Community</div>
-                        <h3 class="font-display font-black text-2xl mt-2">THE BEST PREDICTIONS ARE EXPLAINED.</h3>
+                        <h3 class="font-display font-black text-lg mt-2">THE BEST PREDICTIONS ARE EXPLAINED.</h3>
                         <p class="text-sm muted leading-relaxed mt-3">Turn your call into a thesis and learn where other predictors see the race differently.</p>
                         <a href="/dashboard/" class="inline-flex gap-2 items-center mt-5 text-xs font-bold">Join the action <i class="fa-solid fa-arrow-right text-f1red"></i></a>
                     </div>
@@ -912,17 +912,17 @@
     </section>
 
     <!-- CTA -->
-    <section class="pb-24 lg:pb-32">
+    <section class="pb-16 lg:pb-20">
         <div class="container">
-            <div class="relative overflow-hidden rounded-[36px] panel border border-f1red/25">
+            <div class="relative overflow-hidden rounded-[28px] panel border border-f1red/25">
                 <div class="absolute inset-0 bg-[radial-gradient(circle_at_10%_20%,rgba(225,6,0,.35),transparent_35%),radial-gradient(circle_at_90%_75%,rgba(255,255,255,.07),transparent_30%)]"></div>
-                <div class="absolute right-[-8%] top-[-42%] w-[500px] h-[500px] rounded-full border border-f1red/15 orbit"></div>
-                <div class="absolute right-[5%] top-[-18%] w-[330px] h-[330px] rounded-full border border-white/5 orbit" style="animation-duration:25s"></div>
+                <div class="absolute right-[-8%] top-[-42%] w-[360px] h-[360px] rounded-full border border-f1red/15 orbit"></div>
+                <div class="absolute right-[5%] top-[-18%] w-[240px] h-[240px] rounded-full border border-white/5 orbit" style="animation-duration:25s"></div>
 
-                <div class="relative z-10 px-6 sm:px-10 lg:px-14 py-14 sm:py-20 grid lg:grid-cols-[1fr_auto] items-end gap-10 reveal">
+                <div class="relative z-10 px-6 sm:px-10 lg:px-12 py-10 sm:py-14 grid lg:grid-cols-[1fr_auto] items-end gap-8 reveal">
                     <div>
                         <div class="kicker text-f1red">Your race starts before lights out</div>
-                        <h2 class="display text-[clamp(3.6rem,8vw,7.7rem)] leading-[.8] mt-5">
+                        <h2 class="display text-[clamp(2.2rem,4.6vw,3.7rem)] leading-[.88] mt-4">
                             MAKE<br><span class="text-f1red">THE CALL.</span>
                         </h2>
                         <p class="max-w-2xl text-base sm:text-lg muted mt-7 leading-relaxed">
@@ -941,10 +941,9 @@
                 </div>
             </div>
 
-            <div class="flex flex-col sm:flex-row justify-between gap-3 mt-5 text-[9px] uppercase tracking-[.14em] text-[var(--muted-2)]">
-                <span>*Illustrative homepage metrics and media placeholders can be replaced by backend/API data.</span>
-                <span>F1 Predict · Data. Insight. Victory.</span>
-            </div>
+            <p class="mt-5 text-[9px] uppercase tracking-[.14em] text-[var(--muted-2)]">
+                *Illustrative homepage metrics and media placeholders can be replaced by backend/API data.
+            </p>
         </div>
     </section>
 
@@ -968,95 +967,6 @@
     </button>
     <img id="lightboxImage" src="" alt="">
 </div>
-
-<footer class="border-t border-[var(--line)] bg-[var(--surface-2)]">
-    <div class="container py-16">
-
-        <div class="grid lg:grid-cols-[1.5fr_repeat(3,.7fr)] gap-12">
-
-            <div>
-                <a href="/" class="inline-flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-f1red text-white grid place-items-center">
-                        <i class="fa-solid fa-flag-checkered"></i>
-                    </div>
-                    <div>
-                        <div class="font-display font-black">F1 PREDICT</div>
-                        <div class="kicker mt-1" style="font-size:7px">DATA. INSIGHT. VICTORY.</div>
-                    </div>
-                </a>
-
-                <p class="max-w-md text-sm muted leading-relaxed mt-6">
-                    A prediction platform designed around the visual grammar of Formula 1: speed, hierarchy, telemetry, precision and decisive moments.
-                </p>
-
-                <div class="flex gap-2 mt-6">
-                    <a href="#" aria-label="Twitter" class="w-10 h-10 rounded-full border border-[var(--line)] grid place-items-center muted hover:text-white hover:bg-f1red hover:border-f1red transition"><i class="fa-brands fa-twitter"></i></a>
-                    <a href="#" aria-label="Instagram" class="w-10 h-10 rounded-full border border-[var(--line)] grid place-items-center muted hover:text-white hover:bg-f1red hover:border-f1red transition"><i class="fa-brands fa-instagram"></i></a>
-                    <a href="#" aria-label="YouTube" class="w-10 h-10 rounded-full border border-[var(--line)] grid place-items-center muted hover:text-white hover:bg-f1red hover:border-f1red transition"><i class="fa-brands fa-youtube"></i></a>
-                    <a href="#" aria-label="Discord" class="w-10 h-10 rounded-full border border-[var(--line)] grid place-items-center muted hover:text-white hover:bg-f1red hover:border-f1red transition"><i class="fa-brands fa-discord"></i></a>
-                </div>
-            </div>
-
-            <div>
-                <div class="kicker mb-5">Product</div>
-                <div class="grid gap-3 text-sm muted">
-                    <a href="/dashboard/" class="hover:text-[var(--text)] transition">Predictions</a>
-                    <a href="/dashboard/" class="hover:text-[var(--text)] transition">Races</a>
-                    <a href="/standings" class="hover:text-[var(--text)] transition">Drivers</a>
-                    <a href="/constructors" class="hover:text-[var(--text)] transition">Teams</a>
-                    <a href="/analytics" class="hover:text-[var(--text)] transition">Analytics</a>
-                </div>
-            </div>
-
-            <div>
-                <div class="kicker mb-5">Company</div>
-                <div class="grid gap-3 text-sm muted">
-                    <a href="#" class="hover:text-[var(--text)] transition">About Us</a>
-                    <a href="#" class="hover:text-[var(--text)] transition">Careers</a>
-                    <a href="#" class="hover:text-[var(--text)] transition">Contact</a>
-                    <a href="#" class="hover:text-[var(--text)] transition">News</a>
-                    <a href="#" class="hover:text-[var(--text)] transition">Partners</a>
-                </div>
-            </div>
-
-            <div>
-                <div class="kicker mb-5">Resources</div>
-                <div class="grid gap-3 text-sm muted">
-                    <a href="/analytics" class="hover:text-[var(--text)] transition">How It Works</a>
-                    <a href="/analytics" class="hover:text-[var(--text)] transition">FAQs</a>
-                    <a href="#" class="hover:text-[var(--text)] transition">Blog</a>
-                    <a href="#" class="hover:text-[var(--text)] transition">Terms of Use</a>
-                    <a href="#" class="hover:text-[var(--text)] transition">Privacy Policy</a>
-                </div>
-            </div>
-
-        </div>
-
-        <div class="mt-14 pt-7 border-t border-[var(--line)] flex flex-col md:flex-row md:items-center justify-between gap-5">
-            <div class="flex gap-3">
-                <a href="#" class="flex items-center gap-2 rounded-xl border border-[var(--line)] px-3 py-2 hover:bg-[var(--surface)] transition">
-                    <i class="fa-brands fa-apple text-lg"></i>
-                    <span>
-                        <span class="block text-[7px] uppercase muted">Download on the</span>
-                        <span class="text-xs font-bold">App Store</span>
-                    </span>
-                </a>
-                <a href="#" class="flex items-center gap-2 rounded-xl border border-[var(--line)] px-3 py-2 hover:bg-[var(--surface)] transition">
-                    <i class="fa-brands fa-google-play text-lg"></i>
-                    <span>
-                        <span class="block text-[7px] uppercase muted">Get it on</span>
-                        <span class="text-xs font-bold">Google Play</span>
-                    </span>
-                </a>
-            </div>
-
-            <div class="text-xs text-[var(--muted-2)]">
-                © 2026 F1 Predict. All rights reserved.
-            </div>
-        </div>
-
-    </div>
-</footer>
 
 <script src="{{ url_for('static', filename='js/homepage.js') }}"></script>
 

@@ -55,12 +55,15 @@ cache/model_cache/*
 Thumbs.db
 *.log
 
-# Keep for HF Space: do NOT ignore these (needed in image)
-# README.md, docs/, and dashboard/static/img|videos are intentionally NOT ignored
-# (previous version ignored *.md, docs/, *.mp4, *.png — that broke the Space)
+# HF Space: keep README.md and dashboard/static/* (needed in image)
+# Do NOT ignore *.md, *.png, *.mp4 — that broke Space in previous version
 
-# Tests — keep but don't need in production image if you want smaller image, uncomment:
-# tests/
-# .pytest_cache/
-# .coverage
-# htmlcov/
+# Not needed for live image (save ~2MB + 60KB docs)
+uv.lock
+tests/
+.pytest_cache/
+.coverage
+htmlcov/
+__pycache__/
+.mypy_cache/
+.pytest_cache/

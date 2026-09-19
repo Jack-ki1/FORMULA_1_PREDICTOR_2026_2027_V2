@@ -196,17 +196,9 @@ class BenchmarkSuite:
             'average_improvement': np.mean(all_accuracies) - np.mean(all_baselines),
         }
         
-        # Generate recommendations
-        for target_id, metrics in report['target_accuracies'].items():
-            if metrics['improvement'] < 0.1:
-                report['recommendations'].append(
-                    f"{target_id}: Model performance close to baseline, consider feature engineering"
-                )
-            elif metrics['improvement'] > 0.3:
-                report['recommendations'].append(
-                    f"{target_id}: Excellent performance, model well-calibrated"
-                )
-        
+        # No auto-generated recommendation strings — UI keeps only working metrics;
+        # (previous version emitted per-target boilerplate like "winner: Excellent performance…")
+        report['recommendations'] = []
         return report
     
     def cross_validate(

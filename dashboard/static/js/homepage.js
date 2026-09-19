@@ -189,51 +189,6 @@
         });
     }
 
-    /* ---------- CUSTOM CURSOR ---------- */
-    if (
-        window.matchMedia("(pointer:fine)").matches &&
-        !window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    ) {
-        const dot = document.createElement("div");
-        const ring = document.createElement("div");
-
-        dot.className = "cursor-dot";
-        ring.className = "cursor-ring";
-
-        document.body.append(dot, ring);
-
-        let mx = 0, my = 0, rx = 0, ry = 0;
-
-        window.addEventListener("pointermove", event => {
-            mx = event.clientX;
-            my = event.clientY;
-
-            dot.style.transform = `translate(${mx - 5}px,${my - 5}px)`;
-            dot.style.opacity = "1";
-            ring.style.opacity = "1";
-        }, { passive: true });
-
-        const animateCursor = () => {
-            rx += (mx - rx) * .17;
-            ry += (my - ry) * .17;
-
-            ring.style.transform = `translate(${rx - 15}px,${ry - 15}px)`;
-            requestAnimationFrame(animateCursor);
-        };
-
-        animateCursor();
-
-        document.querySelectorAll("a,button,.image-card,.video-card").forEach(item => {
-            item.addEventListener("pointerenter", () => document.body.classList.add("is-hover"));
-            item.addEventListener("pointerleave", () => document.body.classList.remove("is-hover"));
-        });
-
-        window.addEventListener("pointerleave", () => {
-            dot.style.opacity = "0";
-            ring.style.opacity = "0";
-        });
-    }
-
     /* ---------- SMART VIDEO CONTROLS ---------- */
     document.querySelectorAll("video[data-video]").forEach(video => {
         video.setAttribute("preload", "metadata");
