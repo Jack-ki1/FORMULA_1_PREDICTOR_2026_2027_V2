@@ -34,7 +34,7 @@
   const state = {
     calendar: [],
     driverMap: {},
-    draft: { raceId: "", weather: "dry", simCount: 10000 },
+    draft: { raceId: "", weather: "dry", simCount: 3000 },
     session: "race",
     subSession: "Race",
     targetId: "podium",
@@ -86,6 +86,7 @@
       
       // Initialize AI sidebar
       initializeAISidebar();
+      if (window.F1 && F1.initNavigation) F1.initNavigation();
       
       console.log("Dashboard initialized successfully");
     } catch (error) {
@@ -1237,7 +1238,7 @@
       font-size: 0.875rem;
       color: var(--sub);
     `;
-    subText.textContent = `Processing ${state.committed?.simCount || 10000} simulations with ${state.aiMode === 'ai' ? 'AI enhancement' : 'ML model'}...`;
+    subText.textContent = `Processing ${state.committed?.simCount || 3000} simulations with ${state.aiMode === 'ai' ? 'AI enhancement' : 'ML model'}...`;
     
     loadingContent.appendChild(spinner);
     loadingContent.appendChild(loadingText);

@@ -61,7 +61,7 @@ class Settings(BaseSettings):
     # Model Configuration
     DEFAULT_MODEL_VERSION: str = 'v1.0'
     ENABLE_ENSEMBLE: bool = True
-    MONTE_CARLO_SIMULATIONS: int = 1000
+    MONTE_CARLO_SIMULATIONS: int = 3000
     SIMULATION_MIN_COUNT: int = 100
     SIMULATION_MAX_COUNT: int = 10000
 

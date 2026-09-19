@@ -27,17 +27,43 @@ from cache.redis import get_cache
 
 logger = logging.getLogger(__name__)
 
+# In-memory prediction cache (avoids repeating 3000-sim Monte Carlo for same inputs)
+_PREDICTION_CACHE: Dict[str, Any] = {}
+_PREDICTION_CACHE_MAX = 50
+
+def _cache_key(race_id: str, session_type: str, sub_session: str, weather: str,
+               grid_positions: Optional[Dict[str, int]], feature_weights: Optional[Dict[str, float]],
+               simulation_count: int, ai_config: Optional[Dict[str, Any]]) -> str:
+    import hashlib, json
+    payload = {
+        "race_id": race_id, "session_type": session_type, "sub_session": sub_session,
+        "weather": weather, "grid_positions": grid_positions or {},
+        "feature_weights": feature_weights or {}, "simulation_count": simulation_count,
+        "ai_config": {k: ai_config.get(k) for k in sorted(ai_config or {})} if ai_config else {},
+    }
+    return hashlib.md5(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+
+def _cache_get(key: str) -> Optional[Dict[str, Any]]:
+    return _PREDICTION_CACHE.get(key)
+
+def _cache_set(key: str, value: Dict[str, Any]) -> None:
+    if len(_PREDICTION_CACHE) >= _PREDICTION_CACHE_MAX:
+        oldest = next(iter(_PREDICTION_CACHE))
+        _PREDICTION_CACHE.pop(oldest, None)
+    _PREDICTION_CACHE[key] = value
+
 
 def _strength_based_grid(all_drivers: List[Dict]) -> Dict[str, int]:
     """
-    Build a simulated qualifying grid ordered by driver strength + small noise.
-    Used when no real qualifying data or manual override is available.
+    Build a simulated qualifying grid ordered by driver strength + realistic variance.
+    Noise increased from 0.04 to 0.14 so P1 is not always the strongest driver —
+    Q1/Q2/Q3 style upset (~30% pole not strongest) is preserved.
     """
     rng = np.random.default_rng()
     scores = []
     for d in all_drivers:
         strength = d.get("strength", 50) / 100.0
-        noise = rng.normal(0, 0.04)
+        noise = rng.normal(0, 0.14)
         scores.append((d["code"], strength + noise))
     scores.sort(key=lambda x: x[1], reverse=True)
     return {code: pos for pos, (code, _) in enumerate(scores, start=1)}
@@ -101,7 +127,7 @@ def generate_prediction(
     weather: str = "dry",
     grid_positions: Optional[Dict[str, int]] = None,
     feature_weights: Optional[Dict[str, float]] = None,
-    simulation_count: int = 10000,
+    simulation_count: int = 3000,
     ai_config: Optional[Dict[str, Any]] = None,
     **kwargs
 ) -> Dict[str, Any]:
@@ -124,7 +150,25 @@ def generate_prediction(
     weather = (weather or "dry").lower()
     weights = feature_weights or {}
     chaos_level = float(weights.get("chaos_level", 50))
-    sim_count = max(100, min(int(simulation_count or 10000), 100_000))
+    sim_count = max(100, min(int(simulation_count or 3000), 100_000))
+    # HF Spaces optimization: CPU Basic (2 vCPU) — cap 10000→5000 to stay <30s and avoid gunicorn timeout
+    import os as _os
+    _is_hf = bool(_os.getenv("SPACE_ID") or _os.getenv("HF_SPACE_ID") or _os.path.isdir("/data"))
+    if _is_hf and sim_count > 5000:
+        logger.info(f"HF cap: {sim_count}→5000 sims for {race_id}")
+        sim_count = 5000
+    # Cache lookup — only for deterministic manual-grid calls.
+    # Auto grids are random (strength+noise / simulated Q1-Q3) so caching would
+    # make results static and hide grid utilisation.
+    _ai_active = (ai_config or {}).get("ai_mode") == "ai"
+    _is_manual_grid = bool(grid_positions and len(grid_positions) > 0)
+    _ckey = None
+    if not _ai_active and _is_manual_grid:
+        _ckey = _cache_key(race_id, session_type, sub_session, weather, grid_positions, weights, sim_count, ai_config)
+        cached = _cache_get(_ckey)
+        if cached is not None:
+            logger.info(f"Cache hit for {race_id}/{session_type}/{sub_session} ({sim_count} sims)")
+            return cached
 
     if not ai_config:
         ai_config = {}
@@ -361,7 +405,7 @@ def generate_prediction(
     except Exception as db_err:
         logger.warning(f"Database save skipped: {db_err}")
 
-    return {
+    result = {
         "race_id": race_id,
         "session_type": session_type,
         "sub_session": sub_session,
@@ -374,6 +418,9 @@ def generate_prediction(
         "timestamp": datetime.now().isoformat(),
         "status": "success",
     }
+    if _ckey is not None:
+        _cache_set(_ckey, result)
+    return result
 
 
 def save_predictions_to_database(

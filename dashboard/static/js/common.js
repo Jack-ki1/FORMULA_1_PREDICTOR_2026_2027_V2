@@ -154,6 +154,38 @@
   };
 
   // ---------------------------------------------------------------------
+  // Navigation helpers (Dashboard/Standings/H2H/Constructors/Analytics)
+  // ---------------------------------------------------------------------
+  F1.navigateTo = function(section) {
+    const sections = {
+      'dashboard': '/dashboard/',
+      'standings': '/standings/',
+      'h2h': '/h2h/',
+      'constructors': '/constructors/',
+      'analytics': '/analytics/',
+      'reports': '/reports/',
+      'home': '/'
+    };
+    const url = sections[section];
+    if (url) window.location.href = url;
+  };
+  F1.initNavigation = function() {
+    document.querySelectorAll('.nav-link, .f1-nav-link').forEach(link => {
+      // Support data-section attribute if present
+      link.addEventListener('click', (e) => {
+        const section = link.dataset.section;
+        if (section) {
+          e.preventDefault();
+          F1.navigateTo(section);
+        }
+      });
+    });
+    window.addEventListener('popstate', (e) => {
+      if (e.state && e.state.section) F1.navigateTo(e.state.section);
+    });
+  };
+
+  // ---------------------------------------------------------------------
   // Live "Updated Xs ago" tick in the nav — purely cosmetic, matches the
   // reference's `tick` state.
   // ---------------------------------------------------------------------
@@ -164,6 +196,7 @@
     setInterval(() => { t += 1; el.textContent = String(t); }, 1000);
   }
   document.addEventListener("DOMContentLoaded", startTick);
+  document.addEventListener("DOMContentLoaded", () => { try { F1.initNavigation(); } catch(e){} });
 
   window.F1 = F1;
 })();

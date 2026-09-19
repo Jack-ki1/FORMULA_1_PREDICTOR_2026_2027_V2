@@ -22,6 +22,10 @@ def create_app():
     app.config['DEBUG'] = settings.DEBUG
     app.config['FLASK_ENV'] = settings.FLASK_ENV
 
+    # Disable strict slashes globally — prevents 308 redirects like
+    # /standings -> http://localhost/standings/ which break inside HF iframe
+    app.url_map.strict_slashes = False
+
     # Enable CORS
     CORS(app)
 

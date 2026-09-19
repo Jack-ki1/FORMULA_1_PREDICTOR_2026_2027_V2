@@ -33,11 +33,11 @@
     </a>
 
     <nav class="flex flex-wrap items-center gap-4" aria-label="Primary">
-      <a href="/dashboard/" class="f1-nav-link {{ 'is-active' if request.blueprint == 'predictions' else '' }}">Dashboard</a>
-      <a href="/standings" class="f1-nav-link {{ 'is-active' if request.blueprint == 'standings' else '' }}">Standings</a>
-      <a href="/h2h" class="f1-nav-link {{ 'is-active' if request.blueprint == 'h2h' else '' }}">H2H Comparison</a>
-      <a href="/constructors" class="f1-nav-link {{ 'is-active' if request.blueprint == 'constructors' else '' }}">Constructors</a>
-      <a href="/analytics" class="f1-nav-link {{ 'is-active' if request.blueprint == 'analytics_settings' else '' }}">Analytics &amp; Settings</a>
+      <a href="/dashboard/" data-section="dashboard" class="f1-nav-link nav-link {{ 'is-active' if request.blueprint == 'predictions' else '' }}">Dashboard</a>
+      <a href="/standings/" data-section="standings" class="f1-nav-link nav-link {{ 'is-active' if request.blueprint == 'standings' else '' }}">Standings</a>
+      <a href="/h2h/" data-section="h2h" class="f1-nav-link nav-link {{ 'is-active' if request.blueprint == 'h2h' else '' }}">H2H Comparison</a>
+      <a href="/constructors/" data-section="constructors" class="f1-nav-link nav-link {{ 'is-active' if request.blueprint == 'constructors' else '' }}">Constructors</a>
+      <a href="/analytics/" data-section="analytics" class="f1-nav-link nav-link {{ 'is-active' if request.blueprint == 'analytics_settings' else '' }}">Analytics &amp; Settings</a>
     </nav>
 
     <div class="flex items-center gap-2">
