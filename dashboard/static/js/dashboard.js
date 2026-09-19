@@ -2123,7 +2123,6 @@
         ${purple ? '<span class="badge-purple" style="position:absolute;top:12px;right:12px">Purple Pick</span>' : ""}
         <div class="pl-2">
           <div class="flex items-center gap-2 mb-1.5">
-            <span class="img-slot" style="width:32px;height:32px;border-radius:999px;border-width:1.5px">&#128100;</span>
             <div>
               <div class="f1-mono fs-11 uppercase tracking-widest font-semibold text-sub">${F1.ordinal(idx + 1)} &middot; projected</div>
               <div class="f1-display text-base font-bold">${F1.escapeHtml(d.name)}</div>
